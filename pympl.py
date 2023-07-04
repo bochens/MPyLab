@@ -7,7 +7,6 @@ import matplotlib.colors as colors
 from matplotlib import cm
 from matplotlib.colors import ListedColormap
 from netCDF4 import Dataset
-import h5py
 import os
 import struct
 import sys
