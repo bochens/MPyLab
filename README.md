@@ -13,6 +13,6 @@ This project is currently developed and maintained by Bo Chen and Dr. Sarah Broo
 - [ ] PBL, cloud, and aerosol layer detection based on the zero crossing algorithm.
 - [ ] Fernald method for backscatter coefficient and extinction coefficient retrieval
 
-## MPL_aerosol.py: Aerosol retrieval based on MPL data (**Planned**)
+## mpl_aerosol.py: Aerosol retrieval based on MPL data (**Planned**)
 
 ## T-matrix calculaiton dataset for lidar aerosol retrieval (**Planned**)
