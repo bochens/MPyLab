@@ -9,6 +9,7 @@ This project is currently developed and maintained by Bo Chen and Dr. Sarah Broo
 
 - [x] Reading .MPL binary data files.
 - [x] Reading afterpulse, overlap, and deadtime correction .bin files.
+- [ ] Interpolate lidar data to even timesteps
 - [ ] Data selection based on start-time and end-time.
 - [ ] Method for making data and housekeeping data timeseries plot, single profile plot, and average profile plot.
 - [ ] Calculate Copol and Crosspol NRB, as well as Depolarization Ratio.
