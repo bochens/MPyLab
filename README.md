@@ -5,8 +5,7 @@ Python toolkit for reading, plotting, and analyzing micro-pulse lidar data.\
 This toolkit took inspiration from peterkuma's project: https://github.com/peterkuma/mpl2nc which can read .mpl binary files and output netcdf files.\
 This project is currently developed and maintained by Bo Chen and Dr. Sarah Brooks Lab at Texas A&M University, Atmospheric Sciences Department.
 
-## pympl.py: Reading, Processing, and plotting .mpl data (**In development**)
-
+- pympl.py: Reading, Processing, and plotting .mpl data (**In development**)
 - [x] Reading .MPL binary data files.
 - [x] Reading afterpulse, overlap, and deadtime correction .bin files.
 - [ ] Interpolate lidar data to even timesteps
@@ -15,10 +14,8 @@ This project is currently developed and maintained by Bo Chen and Dr. Sarah Broo
 - [ ] Calculate Copol and Crosspol NRB, as well as Depolarization Ratio.
 - [ ] PBL, cloud, and aerosol layer detection based on the zero crossing algorithm.
 - [ ] Fernald method for backscatter coefficient and extinction coefficient retrieval
-
-## mpl_aerosol.py: Aerosol retrieval based on MPL data (**Planned**)
-
-## T-matrix calculaiton dataset for lidar aerosol retrieval (**Planned**)
+- mpl_aerosol.py: Aerosol retrieval based on MPL data (**Planned**)
+- T-matrix calculaiton dataset for lidar aerosol retrieval (**Planned**)
 
 # PyMPL Documentation
 
