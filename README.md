@@ -4,9 +4,7 @@
 [![Version](https://img.shields.io/badge/python-3.9-blue.svg)](https://www.python.org/downloads/release/python-3916/)
 
 # MPyLab
-Pronounce as Am-p-lab
-
-Python toolkit for reading, plotting, and analyzing Micropulse Lidar data.
+Python toolkit for reading, plotting, and analyzing Micropulse Lidar data. Pronounce as Am-p-lab
 
 This toolkit took inspiration from peterkuma's project: https://github.com/peterkuma/mpl2nc which can read .mpl binary files and output netcdf files.
 
