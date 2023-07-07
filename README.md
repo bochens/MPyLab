@@ -160,6 +160,9 @@ The `PyMPL` class has the following attributes:
 - `r2_corrected_crosspol`: Array of range-squared corrected cross-polarized lidar data.
 - `nrb_copol`: Array of normalized relative backscatter (NRB) copolarized lidar data.
 - `nrb_crosspol`: Array of NRB cross-polarized lidar data.
+- `interpolation_flag`: A boolean flag indicating whether interpolation has been performed.
+
+The `interpolation_flag` attribute is set to `True` if the `interpolate_data` method has been called on the `PyMPL` object, indicating that the data has been interpolated. If interpolation has not been performed, the flag is set to `False`. Please note that the `interpolation_flag` attribute is not accessible directly as a separate method or property. It serves as a status indicator for the state of the `PyMPL` object.
 
 ## Interpolation
 
@@ -172,7 +175,7 @@ The `PyMPL` class provides interpolation capabilities for lidar data. You can us
 - `interpolated_r2_corrected_copol`: Interpolated range-squared corrected copolarized lidar data.
 - `interpolated_r2_corrected_crosspol`: Interpolated range-squared corrected cross-polarized lidar data.
 - `interpolated_nrb_copol`: Interpolated normalized relative backscatter (NRB) copolarized lidar data.
-- `interpolatednrb_crosspol`: Interpolated NRB cross-polarized lidar data.
+- `interpolated_nrb_crosspol`: Interpolated NRB cross-polarized lidar data.
 
 Note: The interpolation is performed using linear interpolation, and any gaps in the data exceeding the specified `gap_seconds` parameter will not be interpolated.
 
