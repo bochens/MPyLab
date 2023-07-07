@@ -1,8 +1,10 @@
 # MPyLab
 Pronounce as Am-p-lab
 
-Python toolkit for reading, plotting, and analyzing Micropulse Lidar data.\
-This toolkit took inspiration from peterkuma's project: https://github.com/peterkuma/mpl2nc which can read .mpl binary files and output netcdf files.\
+Python toolkit for reading, plotting, and analyzing Micropulse Lidar data.
+
+This toolkit took inspiration from peterkuma's project: https://github.com/peterkuma/mpl2nc which can read .mpl binary files and output netcdf files.
+
 This project is currently developed and maintained by Bo Chen and Dr. Sarah Brooks Lab at Texas A&M University, Atmospheric Sciences Department.
 
 ## Development Plan:
