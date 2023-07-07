@@ -19,7 +19,7 @@ Development Plan
 - mpl_aerosol.py: Aerosol retrieval based on MPL data (**Planned**)
 - T-matrix calculaiton dataset for lidar aerosol retrieval (**Planned**)
 
-# PyMPL Documentation
+# PyMPL Class
 
 The `PyMPL` class is a Python class that provides functionalities for reading, processing, and interpolating data from MPL (Micropulse Lidar) instruments. It allows you to work with MPL data files, perform corrections, and calculate various lidar products.
 
