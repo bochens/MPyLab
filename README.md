@@ -1,7 +1,7 @@
-<img src="assets/TAM-Stack.png" align="right" height = "90" />
+<img src="assets/TAM-Logo-white.png" align="right" height = "90" />
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/python-3.9-blue)](https://www.python.org/downloads/release/python-3916/)
+[![Version](https://img.shields.io/badge/python-3.9-blue.svg)](https://www.python.org/downloads/release/python-3916/)
 
 # MPyLab
 Pronounce as Am-p-lab
