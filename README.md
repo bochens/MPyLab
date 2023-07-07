@@ -1,4 +1,4 @@
-
+<img src="assets/title.png" align="top" style="width: 100%;" />
 <img src="assets/TAM-Logo-white.png" align="right" height = "90" />
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
