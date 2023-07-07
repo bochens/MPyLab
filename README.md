@@ -100,7 +100,7 @@ This method calculates the deadtime correction factor for the provided raw data.
 
 ### `calculate_r2_corrected(self, raw_data, background)`
 
-This method calculates the range-squared corrected data by subtracting the background from the raw data.
+This method calculates the range-squared corrected data after subtracting the background from the raw data.
 
 - `raw_data`: Raw lidar data.
 - `background`: Background lidar data.
