@@ -3,9 +3,10 @@ import numpy as np
 import os
 import struct
 from netCDF4 import Dataset
+import scipy
 
 class PyMPL:
-    _C = 299792458 # m.s-1 speed of light in the universe where this code is written
+    _C = 299792458 # m.s-1 speed of light
 
     _record_entry = ['unit_number','version','year','month','day','hours','minutes',
         'seconds','shots_sum','trigger_frequency','energy_monitor','temp_0',
@@ -55,11 +56,12 @@ class PyMPL:
         seconds_str = np.char.zfill(np.array(self.data_dict['seconds']).astype(str), 2)
         self.datetime = np.array([x+'-'+y+'-'+z+'T'+h+':'+m+':'+s \
                                   for x,y,z,h,m,s in zip(year_str,month_str,day_str,hours_str,minutes_str,seconds_str)], dtype='datetime64')
+        self.seconds_since_start = (self.datetime-self.datetime[0]).astype('timedelta64[s]').astype(int) # Seconds since first data entry
 
-        self.energy_monitor    = np.array(self.data_dict['energy_monitor'])/1000
-        self.temp_detector = np.array(self.data_dict['temp_0'])/100
+        self.energy_monitor = np.array(self.data_dict['energy_monitor'])/1000
+        self.temp_detector  = np.array(self.data_dict['temp_0'])/100
         self.temp_telescope = np.array(self.data_dict['temp_2'])/100
-        self.temp_laser = np.array(self.data_dict['temp_3'])/100
+        self.temp_laser     = np.array(self.data_dict['temp_3'])/100
 
         self.number_bins = self.data_dict['number_bins'][0]
         if np.all(np.array(self.data_dict['number_bins']) != self.number_bins):
@@ -68,23 +70,42 @@ class PyMPL:
         self.bin_time = self.data_dict['bin_time'][0]
         if np.all(np.array(self.data_dict['bin_time']) != self.bin_time):
             raise ValueError('bin_time of scans have to be the same')
+        
+        background_copol       = np.array(self.data_dict['background_average'])
+        background_crosspol    = np.array(self.data_dict['background_average_2'])
 
-        self.raw_data_copol = np.array(self.data_dict['channel_1_data'])
-        self.raw_data_crosspol = np.array(self.data_dict['channel_2_data'])
-        background_copol = np.array(self.data_dict['background_average'])
-        background_crosspol = np.array(self.data_dict['background_average_2'])
-        self.range = 0.5*self.bin_time*self._C*(np.arange(self.number_bins) + 0.5)*1e-3 #km
+        self.range          = 0.5*self.bin_time*self._C*(np.arange(self.number_bins) + 0.5)*1e-3 #km
+        self.bin_resolition = self.range[1]-self.range[0]
+        self.range_edges    = np.append(self.range-self.bin_resolition, self.range[-1]+self.bin_resolition)
 
+        self.raw_copol    = np.array(self.data_dict['channel_1_data'])
+        self.raw_crosspol = np.array(self.data_dict['channel_2_data'])
+
+        ## Calculated product ##
         # Calculate Range Correction Product
-        self.r2_corrected_copol    = self.calculate_r2_corrected(self.raw_data_copol, background_copol)
-        self.r2_corrected_crosspol = self.calculate_r2_corrected(self.raw_data_crosspol, background_crosspol)
+        self.r2_corrected_copol    = self.calculate_r2_corrected(self.raw_copol, background_copol)
+        self.r2_corrected_crosspol = self.calculate_r2_corrected(self.raw_crosspol, background_crosspol)
 
         # Calculate Normalized Relative Backscatter
-        self.nrb_copol    = self.calculate_nrb(self.raw_data_copol   ,background_copol    \
-                                               ,self.ap_dict['ap_copol']   ,self.ap_dict['ap_background_average_copol'])
-        self.nrb_crosspol = self.calculate_nrb(self.raw_data_crosspol,background_crosspol \
+        self.nrb_copol    = self.calculate_nrb(self.raw_copol   ,background_copol    \
+                                               ,self.ap_dict['ap_copol'],self.ap_dict['ap_background_average_copol'])
+        self.nrb_crosspol = self.calculate_nrb(self.raw_crosspol,background_crosspol \
                                                ,self.ap_dict['ap_crosspol'],self.ap_dict['ap_background_average_crosspol'])
-    
+        self.depol_ratio  = self.calculate_depol_ratio()
+        
+        ## Interpolation product ##
+        self.interpolation_flag                   = False
+        self.interpolated_datetime                = None
+        self.interpolated_seconds_since_start     = None
+        self.interpolated_raw_copol               = None
+        self.interpolated_raw_crosspol            = None
+        self.interpolated_r2_corrected_copol      = None
+        self.interpolated_r2_corrected_crosspol   = None
+        self.interpolated_nrb_copol               = None
+        self.interpolated_nrb_crosspol            = None
+        self.interpolated_depol_ratio             = None
+
+
     @classmethod
     def read_files(cls, data_path, ap_path, ov_path, dt_path):
         '''
@@ -132,7 +153,6 @@ class PyMPL:
                     elif entry_format == 'float32 array':
                         unpacked_entry = struct.unpack(cls._byte_format[entry_format], binary_entry)
                         data_dict[entry_type].append(list(unpacked_entry))
-                    
         fin.close()
         return data_dict, number_bins
 
@@ -232,11 +252,63 @@ class PyMPL:
                                  - ap_background*self.calculate_dtcf(ap_background))*energy_stacked/self.ap_dict['ap_energy']
         nrb = (dt_corrected_raw - background_correction - afterpulse_correction)*np.square(range_stacked)/(ov_data_stacked*energy_stacked)
         return nrb
-    
-    def get_closest_time_index(self, a_datetime):
-        a_datetime = np.datetime64(a_datetime) # makesure the datetime type is numpy datetime65
-        time_difference = (self.datetime - a_datetime)
-        time_difference_seconds = time_difference.astype('timedelta64[s]').astype(int)
-        nearest_index = np.argmin(np.abs(time_difference_seconds))
-        return nearest_index
 
+    def calculate_depol_ratio(self):
+        cross_over_co = self.nrb_crosspol/self.nrb_copol
+        return cross_over_co/(cross_over_co+1)
+
+    def select_time(self, start_time, end_time): # return a new PyMPL object with data within the start_time and end_time
+        start_time = np.datetime64(start_time)
+        end_time   = np.datetime64(end_time)
+        selected_indicies = np.where(np.logical_and(self.datetime>=start_time, self.datetime<=end_time))[0]
+
+        selected_data_dict = {}
+        for key, value in self.data_dict.items():
+            selected_data_dict[key] = [value[i] for i in selected_indicies].copy() # make copy so change to one list doesn't affect another
+        return PyMPL(selected_data_dict, self.ap_dict, self.ov_dict, self.dt_dict)
+    
+    def interpolate_single_data(self, new_time_array, data, time_reoslution, gap_seconds = None):
+        '''
+        time_resolution: time resolution in seconds
+        gap_seconds: determine when the gap in timestamps is too large to be interpolated
+        '''
+        data = np.array(data) # make sure its an np array
+        if gap_seconds is None:
+            gap_seconds = time_reoslution * 2
+
+        new_seconds_passed = (new_time_array-new_time_array[0]).astype('timedelta64[s]').astype(int)
+        
+        gap_indicies   = np.where(self.seconds_since_start>gap_seconds)[0]
+        gap_starts  = self.datetime[gap_indicies[0]]
+        gap_ends    = self.datetime[gap_indicies[-1]]
+        print(self.seconds_since_start.shape)
+        print(data.shape)
+        linear_interpolator = scipy.interpolate.interp1d(self.seconds_since_start, data, kind='linear', axis= 0)
+        interpolated_data   = linear_interpolator(new_seconds_passed) # is a numpy array
+        new_gap_indicies    = np.where(np.logical_and(new_time_array>gap_starts, new_time_array<gap_ends))[0]
+        interpolated_data[new_gap_indicies] = np.nan
+
+        return interpolated_data
+    
+
+    def interpolate_data(self, start_time, end_time, time_reoslution, gap_seconds = None):
+        if gap_seconds is None:
+            gap_seconds = time_reoslution * 2
+
+        self.interpolation_flag = True
+        # return a new PyMPL object with interpolated data within the start_time and end_time
+        start_time = np.datetime64(start_time)
+        end_time   = np.datetime64(end_time)
+
+        new_time_array = np.arange(start_time, end_time, np.timedelta64(time_reoslution, 's'))
+        self.interpolated_datetime               = new_time_array
+        self.interpolated_seconds_since_start    = (new_time_array-new_time_array[0]).astype('timedelta64[s]').astype(int)
+        self.interpolated_raw_copol              = self.interpolate_single_data(new_time_array, self.raw_copol, time_reoslution, gap_seconds=gap_seconds)
+        self.interpolated_raw_crosspol           = self.interpolate_single_data(new_time_array, self.raw_crosspol, time_reoslution, gap_seconds=gap_seconds)
+        self.interpolated_r2_corrected_copol     = self.interpolate_single_data(new_time_array, self.r2_corrected_copol, time_reoslution, gap_seconds=gap_seconds)
+        self.interpolated_r2_corrected_crosspol  = self.interpolate_single_data(new_time_array, self.r2_corrected_crosspol, time_reoslution, gap_seconds=gap_seconds)
+        self.interpolated_nrb_copol              = self.interpolate_single_data(new_time_array, self.nrb_copol, time_reoslution, gap_seconds=gap_seconds)
+        self.interpolated_nrb_crosspol           = self.interpolate_single_data(new_time_array, self.nrb_crosspol, time_reoslution, gap_seconds=gap_seconds)
+        self.interpolated_depol_ratio            = self.interpolate_single_data(new_time_array, self.depol_ratio, time_reoslution, gap_seconds=gap_seconds)
+
+        
