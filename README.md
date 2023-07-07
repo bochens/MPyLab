@@ -13,15 +13,17 @@ This project is currently developed and maintained by Bo Chen of Dr. Sarah Brook
 
 ## Development Plan:
 
-- pympl.py: Reading, Processing, and plotting .mpl data (**In development**)
+- pympl.py: Reading, Processing, and  .mpl data (**In development**)
   - [x] Reading .MPL binary data files.
   - [x] Reading afterpulse, overlap, and deadtime correction .bin files.
   - [ ] Interpolate lidar data to even timesteps
   - [ ] Data selection based on start-time and end-time.
-  - [ ] Method for making data and housekeeping data timeseries plot, single profile plot, and average profile plot.
-  - [ ] Calculate Copol and Crosspol NRB, as well as Depolarization Ratio.
+  - [x] Calculate Copol and Crosspol NRB, as well as Depolarization Ratio.
   - [ ] PBL, cloud, and aerosol layer detection based on the zero crossing algorithm.
   - [ ] Fernald method for backscatter coefficient and extinction coefficient retrieval
+    
+- plotmpl.py: Ploting mpl data
+  - [ ] Method for making data and housekeeping data timeseries plot, single profile plot, and average profile plot.
 - mpl_aerosol.py: Aerosol retrieval based on MPL data (**Planned**)
 - T-matrix calculaiton dataset for lidar aerosol retrieval (**Planned**)
 
