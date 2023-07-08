@@ -71,15 +71,15 @@ class PyMPL:
         if np.all(np.array(self.data_dict['bin_time']) != self.bin_time):
             raise ValueError('bin_time of scans have to be the same')
         
-        background_copol       = np.array(self.data_dict['background_average'])
-        background_crosspol    = np.array(self.data_dict['background_average_2'])
+        background_copol    = np.array(self.data_dict['background_average_2'])
+        background_crosspol = np.array(self.data_dict['background_average'])
 
         self.range          = 0.5*self.bin_time*self._C*(np.arange(self.number_bins) + 0.5)*1e-3 #km
         self.bin_resolition = self.range[1]-self.range[0]
         self.range_edges    = np.append(self.range-self.bin_resolition, self.range[-1]+self.bin_resolition)
 
-        self.raw_copol    = np.array(self.data_dict['channel_1_data'])
-        self.raw_crosspol = np.array(self.data_dict['channel_2_data'])
+        self.raw_copol      = np.array(self.data_dict['channel_2_data'])
+        self.raw_crosspol   = np.array(self.data_dict['channel_1_data'])
 
         ## Calculated product ##
         # Calculate Range Correction Product
@@ -199,21 +199,21 @@ class PyMPL:
             ap_dict[x] = np.array(a)
         fin.close()
         return ap_dict
-    
+        
     @classmethod
     def read_overlap(cls, file_path):
         fin = open(file_path, "rb")
         buf = fin.read()
         n = len(buf)//16
         fin.seek(0)
-        ol_dict = {'ol_number_bins': n}
+        ov_dict = {'ol_number_bins': n}
         for x in ['ol_range', 'ol_overlap']:
             binary_entry = fin.read(8*n)
             if len(binary_entry) < 8*n:
                 raise IOError('Incomplete %s data' % x)
-            ol_dict[x] = np.array(struct.unpack_from('<' + 'd'*n, buf))
+            ov_dict[x] = np.array(struct.unpack_from('<' + 'd'*n, binary_entry))
         fin.close()
-        return ol_dict
+        return ov_dict
     
     @classmethod
     def read_deadtime(cls, file_path):
@@ -225,11 +225,11 @@ class PyMPL:
         dt_dict['dt_coeff_degree'] = np.arange(n - 1, -1, -1)
         return dt_dict
     
-    def calculate_dtcf(self, raw_data): # calculate deadtime correction factor
+    def calculate_dtcf(self, data): # calculate deadtime correction factor
         dt_coeff = self.dt_dict['dt_coeff']
         dt_coeff_degree = self.dt_dict['dt_coeff_degree']
         dt_number_coeff = self.dt_dict['dt_number_coeff']
-        return np.sum([(raw_data*1e3)**(dt_coeff_degree[i])*dt_coeff[i] for i in range(dt_number_coeff)], axis=0)
+        return np.sum([(data*1e3)**(dt_coeff_degree[i])*dt_coeff[i] for i in range(dt_number_coeff)], axis=0)
 
     def calculate_r2_corrected(self, raw_data, background):
         background_stacked = np.transpose(np.vstack([background]*raw_data.shape[1]))
@@ -239,18 +239,20 @@ class PyMPL:
         ap_range = self.ap_dict['ap_range']
         ol_range = self.ov_dict['ol_range']
         ov_data  = self.ov_dict['ol_overlap']
-        ap_data_interped = np.interp(self.range, ap_range, ap_data) if self.ap_dict['ap_number_bins']!=self.number_bins else ap_data
-        ov_data_interped = np.interp(self.range, ol_range, ov_data) if self.ov_dict['ol_number_bins']!=self.number_bins else ov_data
+        ap_data_interped = np.interp(self.range, ap_range, ap_data)
+        ov_data_interped = np.interp(self.range, ol_range, ov_data)
         
-        ap_data_stacked  = np.vstack([ap_data_interped]*raw_data.shape[0])
-        ov_data_stacked  = np.vstack([ov_data_interped]*raw_data.shape[0])
-        energy_stacked   = np.transpose(np.vstack([self.energy_monitor]*raw_data.shape[1]))
-        range_stacked    = np.vstack([self.range]*raw_data.shape[0])
+        ap_data_stacked  = np.vstack([ap_data_interped] * raw_data.shape[0])
+        ov_data_stacked  = np.vstack([ov_data_interped] * raw_data.shape[0])
+        energy_stacked   = np.transpose(np.vstack([self.energy_monitor] * raw_data.shape[1]))
+        range_stacked    = np.vstack([self.range] * raw_data.shape[0])
         dt_corrected_raw = raw_data*self.calculate_dtcf(raw_data)
-        background_correction = np.transpose(np.vstack([background*self.calculate_dtcf(background)]*raw_data.shape[1]))
-        afterpulse_correction = (ap_data_stacked*self.calculate_dtcf(ap_data_stacked) \
-                                 - ap_background*self.calculate_dtcf(ap_background))*energy_stacked/self.ap_dict['ap_energy']
-        nrb = (dt_corrected_raw - background_correction - afterpulse_correction)*np.square(range_stacked)/(ov_data_stacked*energy_stacked)
+        background_correction = np.transpose(np.vstack([background * self.calculate_dtcf(background)] * raw_data.shape[1]))
+        afterpulse_correction = (
+            ap_data_stacked * self.calculate_dtcf(ap_data_stacked) - ap_background  * self.calculate_dtcf(ap_background)
+        ) * energy_stacked  / self.ap_dict['ap_energy']
+
+        nrb = (dt_corrected_raw - background_correction - afterpulse_correction)*np.square(range_stacked) / (ov_data_stacked*energy_stacked)
         return nrb
 
     def calculate_depol_ratio(self):
@@ -290,7 +292,6 @@ class PyMPL:
 
         return interpolated_data
     
-
     def interpolate_data(self, start_time, end_time, time_reoslution, gap_seconds = None):
         if gap_seconds is None:
             gap_seconds = time_reoslution * 2
