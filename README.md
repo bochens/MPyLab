@@ -27,7 +27,7 @@ This project is currently developed and maintained by Bo Chen of Dr. Sarah Brook
   - [ ] Function for 1d timeseries plot
   - [ ] Function for single and average profile plot
 
-- mpl_aerosol.py: Aerosol retrieval based on MPL data (**Planned**)
+- mpl_aerosol.py: Aerosol profile retrieval based on MPL data (**Planned**)
 - T-matrix calculaiton dataset for lidar aerosol retrieval (**Planned**)
 
 ## Documentation:
