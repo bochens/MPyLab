@@ -12,6 +12,7 @@ This toolkit took inspiration from peterkuma's project: https://github.com/peter
 This project is currently developed and maintained by Bo Chen of Dr. Sarah Brooks Lab at Texas A&M University, Atmospheric Sciences Department.
 
 ## Development Plan:
+Note: the code is still in development and not well tested.
 
 - pympl.py: Reading, Processing, and  .mpl data (**In development**)
   - [x] Reading .MPL binary data files.
