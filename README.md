@@ -24,7 +24,7 @@ Note: the code is still in development and not well tested.
   - [ ] Fernald method for backscatter coefficient and extinction coefficient retrieval
     
 - plotmpl.py: Ploting mpl data
-  - [ ] Function for 2d timeseries plot
+  - [x] Function for 2d timeseries plot
   - [ ] Function for 1d timeseries plot
   - [ ] Function for single and average profile plot
 
