@@ -34,4 +34,10 @@ Note: the code is still in development and not well tested.
 ## Documentation:
 
 - [Wikipage](https://github.com/bochens/MPyLab/wiki)
-- [`PyMPL` class](https://github.com/bochens/MPyLab/wiki/PyMPL-Class)
+
+#### Micropulse Lidar data reading and processing
+- [`PyMPL` class](https://github.com/bochens/MPyLab/wiki/pympl.PyMPL-Class)
+
+#### Micropulse Lidar data visualization
+- [`plotmpl` module](https://github.com/bochens/MPyLab/wiki/plotmpl)
+
