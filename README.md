@@ -16,7 +16,7 @@ This project is currently developed and maintained by Bo Chen of Dr. Sarah Brook
 - pympl.py: Reading, Processing, and  .mpl data (**In development**)
   - [x] Reading .MPL binary data files.
   - [x] Reading afterpulse, overlap, and deadtime correction .bin files.
-  - [x] Method for interpolate lidar data to even timesteps
+  - [x] Function for interpolate lidar data to even timesteps
   - [x] Data selection based on start-time and end-time.
   - [x] Calculate Copol and Crosspol NRB, as well as Depolarization Ratio.
   - [ ] PBL, cloud, and aerosol layer detection based on the zero crossing algorithm.
