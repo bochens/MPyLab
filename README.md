@@ -23,7 +23,10 @@ This project is currently developed and maintained by Bo Chen of Dr. Sarah Brook
   - [ ] Fernald method for backscatter coefficient and extinction coefficient retrieval
     
 - plotmpl.py: Ploting mpl data
-  - [ ] Method for making data and housekeeping data timeseries plot, single profile plot, and average profile plot.
+  - [ ] Function for 2d timeseries plot
+  - [ ] Function for 1d timeseries plot
+  - [ ] Function for single and average profile plot
+
 - mpl_aerosol.py: Aerosol retrieval based on MPL data (**Planned**)
 - T-matrix calculaiton dataset for lidar aerosol retrieval (**Planned**)
 
