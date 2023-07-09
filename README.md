@@ -41,3 +41,6 @@ Note: the code is still in development and not well tested.
 #### Micropulse Lidar data visualization
 - [`plotmpl` module](https://github.com/bochens/MPyLab/wiki/plotmpl)
 
+## Example
+
+
