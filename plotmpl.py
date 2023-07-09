@@ -5,13 +5,22 @@ from matplotlib import cm
 from matplotlib.colors import ListedColormap
 from pympl import PyMPL
 
-### lidar jet colormap ###
-jet = cm.get_cmap('jet', 256)
-newcolors = jet(np.linspace(0, 1, 256))
-newcolors[:1, :] = np.array([0, 0, 0, 1])  # black
-newcolors[-1:, :] = np.array([1, 1, 1, 1]) # white
-lidar_jet = ListedColormap(newcolors)
+def _make_lidar_colormap(cmap_str, under_color=np.array([0, 0, 0, 1]), over_color=np.array([1, 1, 1, 1])):
+    cmap = cm.get_cmap(cmap_str, 256)
+    newcolors = cmap(np.linspace(0, 1, 256))
+    newcolors[:1, :] = under_color  # black
+    newcolors[-1:,:] = over_color # white
+    lidar_cmap = ListedColormap(newcolors)
+    return lidar_cmap
 
+##### lidar colormap #####
+gnuplot2     = cm.get_cmap('gnuplot2', 256)
+nipy_spectral= cm.get_cmap('nipy_spectral', 256)
+lidar_jet    = _make_lidar_colormap('jet')
+lidar_gist   = _make_lidar_colormap('gist_ncar')
+lidar_turbo  = _make_lidar_colormap('turbo')
+
+##### default parameters #####
 default_figure_size = (7.2, 4.8)
 
 def _get_fig_and_ax(fig, ax):
@@ -43,7 +52,7 @@ def _format_datetime(datetime_arr):
         formatted_str = ""
     return np.array(return_list)
 
-def plot_mpl_2d_timeseries(mpl_datetime, mpl_range_edges, mpl_2d_data, fig=None, ax=None, range_max = 20, vmin=0, vmax=1, colorbar_bool = True, tick_number = None):
+def plot_mpl_2d_timeseries(mpl_datetime, mpl_range_edges, mpl_2d_data, fig=None, ax=None, range_max = 20, vmin=0, vmax=1, color_map = lidar_jet, colorbar_bool = True, tick_number = None):
     '''
     range_max: max y range to plot in km
     '''
@@ -52,7 +61,7 @@ def plot_mpl_2d_timeseries(mpl_datetime, mpl_range_edges, mpl_2d_data, fig=None,
     number_of_timestamp = mpl_datetime.shape[0]   # number of mpl profiles
     time_x = np.arange(number_of_timestamp+1)     # time dimension edge for pcolormesh
 
-    handle = ax.pcolormesh(time_x, mpl_range_edges, np.transpose(mpl_2d_data), cmap = lidar_jet, shading='auto' , norm=colors.Normalize(vmin=0, vmax=1))
+    handle = ax.pcolormesh(time_x, mpl_range_edges, np.transpose(mpl_2d_data), cmap = color_map, shading='auto' , norm=colors.Normalize(vmin=0, vmax=1))
     ax.set_ylim(0,range_max)
 
     if colorbar_bool:
