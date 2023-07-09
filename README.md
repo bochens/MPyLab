@@ -45,4 +45,4 @@ Note: the code is still in development and not well tested.
 
 | ![space-1.jpg](assets/example_1.png) | 
 |:--:| 
-| *NRB data collected during DOE TRACER project by TAMU mobile lab. The gaps shows when lidar wasn't collecting data and the gap is handled by the interpolation.* |
+| *NRB data collected during DOE TRACER project by TAMU mobile lab. The gaps shows when lidar wasn't collecting data and the gap is handled by the interpolation function.* |
