@@ -61,7 +61,7 @@ def plot_mpl_2d_timeseries(mpl_datetime, mpl_range_edges, mpl_2d_data, fig=None,
     number_of_timestamp = mpl_datetime.shape[0]   # number of mpl profiles
     time_x = np.arange(number_of_timestamp+1)     # time dimension edge for pcolormesh
 
-    handle = ax.pcolormesh(time_x, mpl_range_edges, np.transpose(mpl_2d_data), cmap = color_map, shading='auto' , norm=colors.Normalize(vmin=0, vmax=1))
+    handle = ax.pcolormesh(time_x, mpl_range_edges, np.transpose(mpl_2d_data), cmap = color_map, shading='auto' , norm=colors.Normalize(vmin=vmin, vmax=vmax))
     ax.set_ylim(0,range_max)
 
     if colorbar_bool:
