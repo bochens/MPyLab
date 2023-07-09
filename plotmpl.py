@@ -26,16 +26,19 @@ def _get_fig_and_ax(fig, ax):
 def _format_datetime(datetime_arr):
     return_list = []
     formatted_str = ""
+
+    date_and_time_format = "%H:%M:%S\n%m-%d-%Y"
+    time_format = '%H:%M:%S'
     
     for idx, x in enumerate(datetime_arr):
         if idx == 0:
-            formatted_str += x.item().strftime("%m/%d/%Y %H:%M:%S")
+            formatted_str += x.item().strftime(date_and_time_format)
         else:
             previous_x = datetime_arr[idx-1]
             if previous_x.astype('datetime64[D]') == x.astype('datetime64[D]'):
-                formatted_str += x.item().strftime("%H:%M:%S")
+                formatted_str += x.item().strftime(time_format)
             else:
-                formatted_str += x.item().strftime("%m/%d/%Y %H:%M:%S")
+                formatted_str += x.item().strftime(date_and_time_format)
         return_list.append(formatted_str)
         formatted_str = ""
     return np.array(return_list)
@@ -45,6 +48,7 @@ def plot_mpl_2d_timeseries(mpl_datetime, mpl_range_edges, mpl_2d_data, fig=None,
     range_max: max y range to plot in km
     '''
     fig, ax = _get_fig_and_ax(fig, ax)
+    ax.set_facecolor('k')
     number_of_timestamp = mpl_datetime.shape[0]   # number of mpl profiles
     time_x = np.arange(number_of_timestamp+1)     # time dimension edge for pcolormesh
 
@@ -59,13 +63,11 @@ def plot_mpl_2d_timeseries(mpl_datetime, mpl_range_edges, mpl_2d_data, fig=None,
 
     # x ticking and label
     if tick_number is None:
-        tick_number = int(width / number_of_timestamp * 1E3) # will automatically determine how many ticks and lebels to use depending on the figure width
-    print(tick_number)
+        tick_number = int(width) # will automatically determine how many ticks and lebels to use depending on the figure width
     x_tick_positions_availiable = time_x[:-1] + 0.5
     x_tick_position_selector = np.linspace(x_tick_positions_availiable[0], x_tick_positions_availiable[-1], num = tick_number).astype(int)
     ax.set_xticks(x_tick_positions_availiable[x_tick_position_selector])
     formatted_time_label_string = _format_datetime(mpl_datetime[x_tick_position_selector])
-    print(formatted_time_label_string)
     ax.set_xticklabels(formatted_time_label_string)
 
     ax.set_xlabel('time')
