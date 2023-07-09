@@ -268,7 +268,7 @@ class PyMPL:
 
         selected_data_dict = {}
         for key, value in self.data_dict.items():
-            selected_data_dict[key] = [value[i] for i in selected_indicies].copy() # make copy so change to one list doesn't affect another
+            selected_data_dict[key] = [value[i] for i in selected_indicies]
         return PyMPL(selected_data_dict, self.ap_dict, self.ov_dict, self.dt_dict)
     
     def interpolate_single_data(self, new_time_array, data, time_reoslution, gap_seconds = None):
@@ -281,21 +281,19 @@ class PyMPL:
             gap_seconds = time_reoslution * 2
 
         new_seconds_passed = (new_time_array-new_time_array[0]).astype('timedelta64[s]').astype(int)
-        time_difference = self.seconds_since_start[1:] - self.seconds_since_start[:-1]
+        original_seconds_passed  = (self.datetime-new_time_array[0]).astype('timedelta64[s]').astype(int)
+        
+        time_difference    = self.seconds_since_start[1:] - self.seconds_since_start[:-1]
+        gap_indicies       = np.where(time_difference>gap_seconds)[0]
+        gap_starts_arr     = self.datetime[gap_indicies]
+        gap_ends_arr       = self.datetime[gap_indicies+1]
 
-        gap_indicies    = np.where(time_difference>gap_seconds)[0]
-        gap_starts_list = []
-        gap_ends_list   = []
-        for i in gap_indicies:
-            gap_starts_list.append(self.datetime[i])
-            gap_ends_list.append(self.datetime[i+1])
-
-        linear_interpolator = scipy.interpolate.interp1d(self.seconds_since_start, data, kind='linear', axis= 0)
+        linear_interpolator = scipy.interpolate.interp1d(original_seconds_passed, data, kind='linear', axis= 0, bounds_error = False, fill_value = np.nan)
         interpolated_data   = linear_interpolator(new_seconds_passed) # is a numpy array
 
-        for i in range(len(gap_starts_list)):
-            gap_starts = gap_starts_list[i]
-            gap_ends   = gap_ends_list[i]
+        for i in range(len(gap_indicies)):
+            gap_starts = gap_starts_arr[i]
+            gap_ends   = gap_ends_arr[i]
             new_gap_indicies  = np.where(np.logical_and(new_time_array>gap_starts, new_time_array<gap_ends))[0]
             interpolated_data[new_gap_indicies] = np.nan
 
