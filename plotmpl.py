@@ -10,7 +10,7 @@ jet = cm.get_cmap('jet', 256)
 newcolors = jet(np.linspace(0, 1, 256))
 newcolors[:1, :] = np.array([0, 0, 0, 1])  # black
 newcolors[-1:, :] = np.array([1, 1, 1, 1]) # white
-lidar_cmap = ListedColormap(newcolors)
+lidar_jet = ListedColormap(newcolors)
 
 default_figure_size = (7.2, 4.8)
 
@@ -52,7 +52,7 @@ def plot_mpl_2d_timeseries(mpl_datetime, mpl_range_edges, mpl_2d_data, fig=None,
     number_of_timestamp = mpl_datetime.shape[0]   # number of mpl profiles
     time_x = np.arange(number_of_timestamp+1)     # time dimension edge for pcolormesh
 
-    handle = ax.pcolormesh(time_x, mpl_range_edges, np.transpose(mpl_2d_data), cmap = lidar_cmap, shading='auto' , norm=colors.Normalize(vmin=0, vmax=1))
+    handle = ax.pcolormesh(time_x, mpl_range_edges, np.transpose(mpl_2d_data), cmap = lidar_jet, shading='auto' , norm=colors.Normalize(vmin=0, vmax=1))
     ax.set_ylim(0,range_max)
 
     if colorbar_bool:
@@ -64,6 +64,7 @@ def plot_mpl_2d_timeseries(mpl_datetime, mpl_range_edges, mpl_2d_data, fig=None,
     # x ticking and label
     if tick_number is None:
         tick_number = int(width) # will automatically determine how many ticks and lebels to use depending on the figure width
+
     x_tick_positions_availiable = time_x[:-1] + 0.5
     x_tick_position_selector = np.linspace(x_tick_positions_availiable[0], x_tick_positions_availiable[-1], num = tick_number).astype(int)
     ax.set_xticks(x_tick_positions_availiable[x_tick_position_selector])
