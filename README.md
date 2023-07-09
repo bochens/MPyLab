@@ -77,7 +77,7 @@ plt.show()
 ```
 
 
-## Example Plot
+## Example Gallery
 
 | ![space-1.jpg](assets/example_1.png) | 
 |:--:| 
