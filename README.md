@@ -19,7 +19,7 @@ Note: the code is still in development and not well tested.
   - [x] Reading afterpulse, overlap, and deadtime correction .bin files.
   - [x] Function for interpolating lidar data to even timesteps and deals with gaps in timestamps.
   - [x] Data selection based on start-time and end-time.
-  - [x] Calculate Copol and Crosspol NRB, as well as Depolarization Ratio.
+  - [x] Calculate SNR, R2 corrected, NRB, and Depol Ratio
   - [ ] PBL, cloud, and aerosol layer detection based on the zero crossing algorithm.
   - [ ] Fernald method for backscatter coefficient and extinction coefficient retrieval
     
