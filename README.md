@@ -20,7 +20,7 @@ Note: the code is still in development and not well tested.
   - [x] Function for interpolating lidar data to even timesteps and deals with gaps in timestamps.
   - [x] Data selection based on start-time and end-time.
   - [x] Calculate SNR, R2 corrected, NRB, and Depol Ratio
-  - [x] Output .MPL binary data (useful when need to make modification to the binary data files)
+  - [x] Output .MPL binary data (useful when need to combine or make modification to the binary data files)
   - [ ] Output NetCDF data files 
   - [ ] PBL, cloud, and aerosol layer detection based on the zero crossing algorithm.
   - [ ] Fernald method for backscatter coefficient and extinction coefficient retrieval
