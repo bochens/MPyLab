@@ -57,7 +57,7 @@ ap_file_path  = '/Path/to/afterpulse-file.bin'
 ov_file_path  = '/Path/to/overlap-file.bin'
 dt_file_path  = '/Path/to/deadtime-file.bin'
 
-# Create a MPL data object. All the basic correction and calculation (like NRB) is done at the initialization of the MPL data object
+# Create a MPL data object. All the basic corrections and calculations (like NRB) is done at the initialization of the MPL data object
 mpl_object = PyMPL(mpl_file_path, ap_file_path, ov_file_path, dt_file_path)
 
 # Peform interpolation over user specified datetime
