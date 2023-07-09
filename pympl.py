@@ -63,6 +63,8 @@ class PyMPL:
         self.temp_telescope = np.array(self.data_dict['temp_2'])/100
         self.temp_laser     = np.array(self.data_dict['temp_3'])/100
 
+        self.number_profile = self.datetime.size
+
         self.number_bins = self.data_dict['number_bins'][0]
         if np.all(np.array(self.data_dict['number_bins']) != self.number_bins):
             raise ValueError('number_bins of scans have to be the same')
@@ -279,16 +281,23 @@ class PyMPL:
             gap_seconds = time_reoslution * 2
 
         new_seconds_passed = (new_time_array-new_time_array[0]).astype('timedelta64[s]').astype(int)
-        
-        gap_indicies   = np.where(self.seconds_since_start>gap_seconds)[0]
-        gap_starts  = self.datetime[gap_indicies[0]]
-        gap_ends    = self.datetime[gap_indicies[-1]]
-        print(self.seconds_since_start.shape)
-        print(data.shape)
+        time_difference = self.seconds_since_start[1:] - self.seconds_since_start[:-1]
+
+        gap_indicies    = np.where(time_difference>gap_seconds)[0]
+        gap_starts_list = []
+        gap_ends_list   = []
+        for i in gap_indicies:
+            gap_starts_list.append(self.datetime[i])
+            gap_ends_list.append(self.datetime[i+1])
+
         linear_interpolator = scipy.interpolate.interp1d(self.seconds_since_start, data, kind='linear', axis= 0)
         interpolated_data   = linear_interpolator(new_seconds_passed) # is a numpy array
-        new_gap_indicies    = np.where(np.logical_and(new_time_array>gap_starts, new_time_array<gap_ends))[0]
-        interpolated_data[new_gap_indicies] = np.nan
+
+        for i in range(len(gap_starts_list)):
+            gap_starts = gap_starts_list[i]
+            gap_ends   = gap_ends_list[i]
+            new_gap_indicies  = np.where(np.logical_and(new_time_array>gap_starts, new_time_array<gap_ends))[0]
+            interpolated_data[new_gap_indicies] = np.nan
 
         return interpolated_data
     
@@ -312,4 +321,29 @@ class PyMPL:
         self.interpolated_nrb_crosspol           = self.interpolate_single_data(new_time_array, self.nrb_crosspol, time_reoslution, gap_seconds=gap_seconds)
         self.interpolated_depol_ratio            = self.interpolate_single_data(new_time_array, self.depol_ratio, time_reoslution, gap_seconds=gap_seconds)
 
+    def write_mpl(self, output_dir, filename):
+        """
+        output the current data dict as a new binary mpl file.
+        Useful when need to need to modify the .mpl binary file by changing self.data_dict
+        """
+
+        output_path = os.path.join(output_dir, filename)
+        new_dict = self.data_dict.copy()
         
+        new_file = open(output_path, 'wb')
+        for i in range(self.number_profile):
+            for j in range(len(self._record_entry)):
+                entry_type = self._record_entry[j]
+                entry_format = self._record_format[j]
+                data_to_write = new_dict[entry_type][i]
+                if entry_format in ['uint16','uint32','int16','int32','float32']:
+                    binary_data = struct.pack(self._byte_format[entry_format], data_to_write)
+                elif entry_format == 'byte':
+                    integer_value = int(data_to_write, 2)
+                    binary_data = struct.pack(self._byte_format[entry_format], integer_value)
+                elif entry_format == 'char*6':
+                    binary_data = data_to_write.encode('latin-1')
+                elif entry_format == 'float32 array':
+                    binary_data = struct.pack(self._byte_format[entry_format], *data_to_write)
+                    
+                new_file.write(binary_data)
