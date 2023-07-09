@@ -63,12 +63,12 @@ mpl_object = PyMPL(mpl_file_path, ap_file_path, ov_file_path, dt_file_path)
 # Peform interpolation over user specified datetime
 mpl_object.interpolate_data(np.datetime64('YYYY-MM-DDThh:mm:ss'),np.datetime64('YYYY-MM-DDThh:mm:ss'),60) # here uses 60 seconds as interpolation time resolution
 
-# Plot the non-interpolated copol nrb data using default colorbar
+# Plot the non-interpolated copol nrb data using default colormap
 fig0, ax0 = plt.subplots(nrows=1, ncols=1, figsize=(10,4))
 plotmpl.plot_mpl_2d_timeseries(mpl_object.datetime, mpl_object.range_edges, mpl_object.nrb_copol, fig=fig0, ax=ax0, range_max = 5, vmin=0, vmax=1)
 ax0.set_title('copol nrb')
 
-# Plot the interpolated copol nrb data using modified gist_ncar colorbar
+# Plot the interpolated copol nrb data using modified gist_ncar colormap
 fig1, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(10,4))
 plotmpl.plot_mpl_2d_timeseries(mpl_object.interpolated_datetime, mpl_object.range_edges, mpl_object.interpolated_nrb_copol, fig=fig1, ax=ax1, range_max = 5, vmin=0, vmax=1, color_map = plotmpl.lidar_gist)
 ax1.set_title('interpolated copol nrb')
