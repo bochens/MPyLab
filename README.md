@@ -31,7 +31,7 @@ Note: the code is still in development and not well tested.
 - mpl_aerosol.py: Aerosol profile retrieval based on MPL data (**Planned**)
 - T-matrix calculaiton dataset for lidar aerosol retrieval (**Planned**)
 
-## Documentation:
+## Documentation and Example Usage
 
 - [Wikipage](https://github.com/bochens/MPyLab/wiki)
 
