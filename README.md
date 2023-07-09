@@ -9,7 +9,7 @@ Python toolkit for reading, plotting, and analyzing Micropulse Lidar data. Prono
 
 This toolkit took inspiration from peterkuma's project: https://github.com/peterkuma/mpl2nc which can read .mpl binary files and output netcdf files.
 
-This project is currently developed and maintained by Bo Chen of Dr. Sarah Brooks Lab at Texas A&M University, Atmospheric Sciences Department.
+This project is currently developed and maintained by Bo Chen at Dr. Sarah Brooks Lab, Atmospheric Sciences Department, Texas A&M University.
 
 ## Development Plan:
 Note: the code is still in development and not well tested.
