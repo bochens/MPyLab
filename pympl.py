@@ -40,14 +40,17 @@ class PyMPL:
     _ap_header = ['ap_header','ap_file_version','ap_number_channels','ap_number_bins','ap_energy','ap_background_average_copol','ap_background_average_crosspol']
     _ap_header_format = ['uint32','uint16','uint8','uint32','float64','float64','float64']
 
-    def __init__(self, data_input, ap_input, ov_input, dt_input):
+    def __init__(self, data_input, ap_input, ov_input, dt_input, blind_range = 0.1):
         
         # make sure the instance constructor can take both dictionary and file path as input
         if all([isinstance(element, dict) for element in [data_input, ap_input, ov_input, dt_input]]):
             self.data_dict, self.ap_dict, self.ov_dict, self.dt_dict = data_input, ap_input, ov_input, dt_input
         else:
             self.data_dict, self.ap_dict, self.ov_dict, self.dt_dict = self.read_files(data_input, ap_input, ov_input, dt_input)
+        
+        self.blind_range = blind_range
 
+        # prepare datetime array
         year_str    = np.char.zfill(np.array(self.data_dict['year']).astype(str), 4)
         month_str   = np.char.zfill(np.array(self.data_dict['month']).astype(str), 2)
         day_str     = np.char.zfill(np.array(self.data_dict['day']).astype(str), 2)
@@ -76,13 +79,18 @@ class PyMPL:
         background_copol    = np.array(self.data_dict['background_average_2'])
         background_crosspol = np.array(self.data_dict['background_average'])
 
-        self.range          = 0.5*self.bin_time*self._C*(np.arange(self.number_bins) + 0.5)*1e-3 #km
+        no_blind_range      = 0.5*self.bin_time*self._C*(np.arange(self.number_bins) + 0.5)*1e-3 #km
+        above_blind_range   = no_blind_range > self.blind_range
+
+        self.range          = no_blind_range[above_blind_range] # do not include range below blind range
         self.bin_resolition = self.range[1]-self.range[0]
         self.range_edges    = np.append(self.range-self.bin_resolition, self.range[-1]+self.bin_resolition)
 
-        self.raw_copol      = np.array(self.data_dict['channel_2_data'])
-        self.raw_crosspol   = np.array(self.data_dict['channel_1_data'])
+        self.raw_copol      = np.array(self.data_dict['channel_2_data'])[:,above_blind_range]
+        self.raw_crosspol   = np.array(self.data_dict['channel_1_data'])[:,above_blind_range]
 
+        self.snr_copol      = self.calculate_snr(self.raw_copol, background_copol, np.array(self.data_dict['background_std_dev_2']))
+        self.snr_crosspol   = self.calculate_snr(self.raw_crosspol, background_crosspol, np.array(self.data_dict['background_std_dev']))
         ## Calculated product ##
         # Calculate Range Correction Product
         self.r2_corrected_copol    = self.calculate_r2_corrected(self.raw_copol, background_copol)
@@ -96,8 +104,8 @@ class PyMPL:
         self.depol_ratio  = self.calculate_depol_ratio()
         
         ## Interpolation product ##
-        self.interpolation_flag                   = False
-        self.interpolated_datetime                = None
+        self.interpolation_flag                   = False   # True if the data has been interpolated
+        self.interpolated_datetime                = None    # Use this as datetime for plotting interpolated data
         self.interpolated_seconds_since_start     = None
         self.interpolated_raw_copol               = None
         self.interpolated_raw_crosspol            = None
@@ -106,7 +114,10 @@ class PyMPL:
         self.interpolated_nrb_copol               = None
         self.interpolated_nrb_crosspol            = None
         self.interpolated_depol_ratio             = None
-
+        self.interpolated_snr_copol               = None
+        self.interpolated_snr_crosspol            = None
+        
+        
 
     @classmethod
     def read_files(cls, data_path, ap_path, ov_path, dt_path):
@@ -227,6 +238,12 @@ class PyMPL:
         dt_dict['dt_coeff_degree'] = np.arange(n - 1, -1, -1)
         return dt_dict
     
+    def calculate_snr(self, raw_data, background, background_std_dev):
+        background_stacked = np.transpose(np.vstack([background] * raw_data.shape[1]))
+        background_std_dev_stacked = np.transpose(np.vstack([background_std_dev] * raw_data.shape[1]))
+
+        return (raw_data - background_stacked)/background_std_dev_stacked
+    
     def calculate_dtcf(self, data): # calculate deadtime correction factor
         dt_coeff = self.dt_dict['dt_coeff']
         dt_coeff_degree = self.dt_dict['dt_coeff_degree']
@@ -300,13 +317,16 @@ class PyMPL:
         return interpolated_data
     
     def interpolate_data(self, start_time, end_time, time_reoslution, gap_seconds = None):
+        '''
+        time_reoslution is seconds
+        '''
         if gap_seconds is None:
             gap_seconds = time_reoslution * 2
 
         self.interpolation_flag = True
         # return a new PyMPL object with interpolated data within the start_time and end_time
         start_time = np.datetime64(start_time)
-        end_time   = np.datetime64(end_time)
+        end_time   = np.datetime64(end_time) + np.timedelta64(time_reoslution,'s') # so the end time is also included
 
         new_time_array = np.arange(start_time, end_time, np.timedelta64(time_reoslution, 's'))
         self.interpolated_datetime               = new_time_array
@@ -318,6 +338,9 @@ class PyMPL:
         self.interpolated_nrb_copol              = self.interpolate_single_data(new_time_array, self.nrb_copol, time_reoslution, gap_seconds=gap_seconds)
         self.interpolated_nrb_crosspol           = self.interpolate_single_data(new_time_array, self.nrb_crosspol, time_reoslution, gap_seconds=gap_seconds)
         self.interpolated_depol_ratio            = self.interpolate_single_data(new_time_array, self.depol_ratio, time_reoslution, gap_seconds=gap_seconds)
+        self.interpolated_snr_copol              = self.interpolate_single_data(new_time_array, self.snr_copol, time_reoslution, gap_seconds=gap_seconds)
+        self.interpolated_snr_crosspol           = self.interpolate_single_data(new_time_array, self.snr_crosspol, time_reoslution, gap_seconds=gap_seconds)
+
 
     def write_mpl(self, output_dir, filename):
         """
