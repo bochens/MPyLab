@@ -17,7 +17,7 @@ Note: the code is still in development and not well tested.
 - pympl.py: Reading, Processing, and  .mpl data (**In development**)
   - [x] Reading .MPL binary data files.
   - [x] Reading afterpulse, overlap, and deadtime correction .bin files.
-  - [x] Function for interpolate lidar data to even timesteps
+  - [x] Function for interpolating lidar data to even timesteps and deals with gaps in timestamps.
   - [x] Data selection based on start-time and end-time.
   - [x] Calculate Copol and Crosspol NRB, as well as Depolarization Ratio.
   - [ ] PBL, cloud, and aerosol layer detection based on the zero crossing algorithm.
