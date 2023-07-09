@@ -31,7 +31,7 @@ Note: the code is still in development and not well tested.
 - mpl_aerosol.py: Aerosol profile retrieval based on MPL data (**Planned**)
 - T-matrix calculaiton dataset for lidar aerosol retrieval (**Planned**)
 
-## Documentation and Example Usage
+## Documentation
 
 - [Wikipage](https://github.com/bochens/MPyLab/wiki)
 
@@ -41,7 +41,43 @@ Note: the code is still in development and not well tested.
 #### Micropulse Lidar data visualization
 - [`plotmpl` module](https://github.com/bochens/MPyLab/wiki/plotmpl)
 
-## Example
+## Example Usage
+
+Here's an example usage of the `plot_mpl_2d_timeseries` function:
+
+```python
+from pympl import PyMPL
+import plotmpl
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Specify input file path
+mpl_file_path = '/Path/to/mpl-folder'
+ap_file_path  = '/Path/to/afterpulse-file.bin'
+ov_file_path  = '/Path/to/overlap-file.bin'
+dt_file_path  = '/Path/to/deadtime-file.bin'
+
+# Create a MPL data object. All the basic correction and calculation (like NRB) is done at the initialization of the MPL data object
+mpl_object = PyMPL(mpl_file_path, ap_file_path, ov_file_path, dt_file_path)
+
+# Peform interpolation over user specified datetime
+mpl_object.interpolate_data(np.datetime64('YYYY-MM-DDThh:mm:ss'),np.datetime64('YYYY-MM-DDThh:mm:ss'),60) # here uses 60 seconds as interpolation time resolution
+
+# Plot the non-interpolated copol nrb data
+fig0, ax0 = plt.subplots(nrows=1, ncols=1, figsize=(10,4))
+plotmpl.plot_mpl_2d_timeseries(mpl_object.datetime, mpl_object.range_edges, mpl_object.nrb_copol, fig=fig0, ax=ax0, range_max = 5, vmin=0, vmax=1)
+ax0.set_title('copol nrb')
+
+# Plot the interpolated copol nrb data
+fig1, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(10,4))
+plotmpl.plot_mpl_2d_timeseries(mpl_object.interpolated_datetime, mpl_object.range_edges, mpl_object.interpolated_nrb_copol, fig=fig1, ax=ax1, range_max = 5, vmin=0, vmax=1, color_map = plotmpl.lidar_gist)
+ax1.set_title('interpolated copol nrb')
+
+plt.show()
+```
+
+
+## Example Plot
 
 | ![space-1.jpg](assets/example_1.png) | 
 |:--:| 
