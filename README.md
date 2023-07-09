@@ -14,7 +14,7 @@ This project is currently developed and maintained by Bo Chen of Dr. Sarah Brook
 ## Development Plan:
 Note: the code is still in development and not well tested.
 
-- pympl.py: Reading, Processing, and  .mpl data (**In development**)
+- pympl.py: Reading, Processing, and Interpolating .mpl data (**In development**)
   - [x] Reading .MPL binary data files.
   - [x] Reading afterpulse, overlap, and deadtime correction .bin files.
   - [x] Function for interpolating lidar data to even timesteps and deals with gaps in timestamps.
