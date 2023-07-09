@@ -81,4 +81,4 @@ plt.show()
 
 | ![space-1.jpg](assets/example_1.png) | 
 |:--:| 
-| *NRB data collected during DOE TRACER project by TAMU mobile lab. The gaps show when lidar wasn't collecting data and the gap is handled by the interpolation function.* |
+| *NRB data collected during DOE TRACER project by TAMU mobile lab. The gaps show when lidar wasn't collecting data and the gaps are handled by the interpolation function.* |
