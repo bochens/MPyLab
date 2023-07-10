@@ -2,8 +2,9 @@ import glob
 import numpy as np
 import os
 import struct
-from netCDF4 import Dataset
 import scipy
+import copy
+from netCDF4 import Dataset
 
 class PyMPL:
     _C = 299792458 # m.s-1 speed of light
@@ -61,7 +62,7 @@ class PyMPL:
                                   for x,y,z,h,m,s in zip(year_str,month_str,day_str,hours_str,minutes_str,seconds_str)], dtype='datetime64')
         self.seconds_since_start = (self.datetime-self.datetime[0]).astype('timedelta64[s]').astype(int) # Seconds since first data entry
 
-        self.energy_monitor = np.array(self.data_dict['energy_monitor'])/1000
+        self.laser_energy         = np.array(self.data_dict['energy_monitor'])/1000
         self.temp_detector  = np.array(self.data_dict['temp_0'])/100
         self.temp_telescope = np.array(self.data_dict['temp_2'])/100
         self.temp_laser     = np.array(self.data_dict['temp_3'])/100
@@ -106,6 +107,10 @@ class PyMPL:
         ## Interpolation product ##
         self.interpolation_flag                   = False   # True if the data has been interpolated
         self.interpolated_datetime                = None    # Use this as datetime for plotting interpolated data
+        self.interpolated_laser_energy            = None    # Energy Monitor
+        self.interpolated_temp_telescope          = None
+        self.interpolated_temp_detector           = None
+        self.interpolated_temp_laser              = None
         self.interpolated_seconds_since_start     = None
         self.interpolated_raw_copol               = None
         self.interpolated_raw_crosspol            = None
@@ -116,9 +121,10 @@ class PyMPL:
         self.interpolated_depol_ratio             = None
         self.interpolated_snr_copol               = None
         self.interpolated_snr_crosspol            = None
+    
+    def copy(self):
+        return copy.deepcopy(self)
         
-        
-
     @classmethod
     def read_files(cls, data_path, ap_path, ov_path, dt_path):
         '''
@@ -263,7 +269,7 @@ class PyMPL:
         
         ap_data_stacked  = np.vstack([ap_data_interped] * raw_data.shape[0])
         ov_data_stacked  = np.vstack([ov_data_interped] * raw_data.shape[0])
-        energy_stacked   = np.transpose(np.vstack([self.energy_monitor] * raw_data.shape[1]))
+        energy_stacked   = np.transpose(np.vstack([self.laser_energy] * raw_data.shape[1]))
         range_stacked    = np.vstack([self.range] * raw_data.shape[0])
         dt_corrected_raw = raw_data*self.calculate_dtcf(raw_data)
         background_correction = np.transpose(np.vstack([background * self.calculate_dtcf(background)] * raw_data.shape[1]))
@@ -287,6 +293,12 @@ class PyMPL:
         for key, value in self.data_dict.items():
             selected_data_dict[key] = [value[i] for i in selected_indicies]
         return PyMPL(selected_data_dict, self.ap_dict, self.ov_dict, self.dt_dict)
+    
+    @classmethod
+    def select_snr(cls, data, snr_data, snr_limit): # return data with a minimum snr
+        high_snr_data = data.copy()
+        high_snr_data[snr_data<snr_limit] = np.nan
+        return high_snr_data
     
     def interpolate_single_data(self, new_time_array, data, time_reoslution, gap_seconds = None):
         '''
@@ -331,6 +343,10 @@ class PyMPL:
         new_time_array = np.arange(start_time, end_time, np.timedelta64(time_reoslution, 's'))
         self.interpolated_datetime               = new_time_array
         self.interpolated_seconds_since_start    = (new_time_array-new_time_array[0]).astype('timedelta64[s]').astype(int)
+        self.interpolated_laser_energy           = self.interpolate_single_data(new_time_array, self.laser_energy, time_reoslution, gap_seconds=gap_seconds)
+        self.interpolated_temp_detector          = self.interpolate_single_data(new_time_array, self.temp_detector, time_reoslution, gap_seconds=gap_seconds)
+        self.interpolated_temp_telescope         = self.interpolate_single_data(new_time_array, self.temp_telescope, time_reoslution, gap_seconds=gap_seconds)
+        self.interpolated_temp_laser             = self.interpolate_single_data(new_time_array, self.temp_laser, time_reoslution, gap_seconds=gap_seconds)
         self.interpolated_raw_copol              = self.interpolate_single_data(new_time_array, self.raw_copol, time_reoslution, gap_seconds=gap_seconds)
         self.interpolated_raw_crosspol           = self.interpolate_single_data(new_time_array, self.raw_crosspol, time_reoslution, gap_seconds=gap_seconds)
         self.interpolated_r2_corrected_copol     = self.interpolate_single_data(new_time_array, self.r2_corrected_copol, time_reoslution, gap_seconds=gap_seconds)
@@ -341,14 +357,12 @@ class PyMPL:
         self.interpolated_snr_copol              = self.interpolate_single_data(new_time_array, self.snr_copol, time_reoslution, gap_seconds=gap_seconds)
         self.interpolated_snr_crosspol           = self.interpolate_single_data(new_time_array, self.snr_crosspol, time_reoslution, gap_seconds=gap_seconds)
 
-
     def write_mpl(self, output_dir, filename):
         """
         output the current data dict as a new binary mpl file.
         Useful when need to need to modify the .mpl binary file by changing self.data_dict
         """
-
-        output_path = os.path.join(output_dir, filename)
+        output_path = os.path.join(output_dir, filename+'.mpl')
         new_dict = self.data_dict.copy()
         
         new_file = open(output_path, 'wb')
