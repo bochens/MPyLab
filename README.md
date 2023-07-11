@@ -63,7 +63,7 @@ dt_file_path  = '/Path/to/deadtime-file.bin'
 mpl_object = PyMPL(mpl_file_path, ap_file_path, ov_file_path, dt_file_path)
 
 # Peform interpolation over user specified datetime
-mpl_object.interpolate_data(np.datetime64('YYYY-MM-DDThh:mm:ss'),np.datetime64('YYYY-MM-DDThh:mm:ss'),60) # here uses 60 seconds as interpolation time resolution
+mpl_object.interpolate_data(60, start_time = np.datetime64('YYYY-MM-DDThh:mm:ss'), end_time = np.datetime64('YYYY-MM-DDThh:mm:ss')) # here uses 60 seconds as interpolation time resolution
 
 # Plot the non-interpolated copol nrb data using default colormap
 fig0, ax0 = plt.subplots(nrows=1, ncols=1, figsize=(10,4))
