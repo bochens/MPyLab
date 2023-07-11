@@ -293,7 +293,7 @@ class PyMPL:
         for key, value in self.data_dict.items():
             selected_data_dict[key] = [value[i] for i in selected_indicies]
         return PyMPL(selected_data_dict, self.ap_dict, self.ov_dict, self.dt_dict)
-    
+
     @classmethod
     def select_snr(cls, data, snr_data, snr_limit): # return data with a minimum snr
         high_snr_data = data.copy()
@@ -328,19 +328,32 @@ class PyMPL:
 
         return interpolated_data
     
-    def interpolate_data(self, start_time, end_time, time_reoslution, gap_seconds = None):
-        '''
-        time_reoslution is seconds
-        '''
-        if gap_seconds is None:
-            gap_seconds = time_reoslution * 2
-
-        self.interpolation_flag = True
-        # return a new PyMPL object with interpolated data within the start_time and end_time
+    @classmethod
+    def make_time_array(cls, time_reoslution, start_time, end_time):
         start_time = np.datetime64(start_time)
         end_time   = np.datetime64(end_time) + np.timedelta64(time_reoslution,'s') # so the end time is also included
 
-        new_time_array = np.arange(start_time, end_time, np.timedelta64(time_reoslution, 's'))
+        return np.arange(start_time, end_time, np.timedelta64(time_reoslution, 's'))
+    
+    def interpolate_data(self, time_reoslution, start_time = None, end_time = None, gap_seconds = None):
+        '''
+        time_reoslution is seconds
+        '''
+
+        if start_time is None:
+            start_time = self.datetime[0]
+
+        if end_time is None:
+            end_time = self.datetime[-1] 
+
+        if gap_seconds is None:
+            gap_seconds = time_reoslution * 2
+        
+        # return a new PyMPL object with interpolated data within the start_time and end_time
+        
+        new_time_array = self.make_time_array(time_reoslution, start_time, end_time)
+
+        self.interpolation_flag                  = True
         self.interpolated_datetime               = new_time_array
         self.interpolated_seconds_since_start    = (new_time_array-new_time_array[0]).astype('timedelta64[s]').astype(int)
         self.interpolated_laser_energy           = self.interpolate_single_data(new_time_array, self.laser_energy, time_reoslution, gap_seconds=gap_seconds)
@@ -356,7 +369,25 @@ class PyMPL:
         self.interpolated_depol_ratio            = self.interpolate_single_data(new_time_array, self.depol_ratio, time_reoslution, gap_seconds=gap_seconds)
         self.interpolated_snr_copol              = self.interpolate_single_data(new_time_array, self.snr_copol, time_reoslution, gap_seconds=gap_seconds)
         self.interpolated_snr_crosspol           = self.interpolate_single_data(new_time_array, self.snr_crosspol, time_reoslution, gap_seconds=gap_seconds)
-
+    
+    def interpolation_reset(self):
+        self.interpolation_flag                  = False
+        self.interpolated_datetime               = None
+        self.interpolated_seconds_since_start    = None
+        self.interpolated_laser_energy           = None
+        self.interpolated_temp_detector          = None
+        self.interpolated_temp_telescope         = None
+        self.interpolated_temp_laser             = None
+        self.interpolated_raw_copol              = None
+        self.interpolated_raw_crosspol           = None
+        self.interpolated_r2_corrected_copol     = None
+        self.interpolated_r2_corrected_crosspol  = None
+        self.interpolated_nrb_copol              = None
+        self.interpolated_nrb_crosspol           = None
+        self.interpolated_depol_ratio            = None
+        self.interpolated_snr_copol              = None
+        self.interpolated_snr_crosspol           = None
+    
     def write_mpl(self, output_dir, filename):
         """
         output the current data dict as a new binary mpl file.
