@@ -17,7 +17,7 @@ Note: the code is still in development and not well tested.
 - pympl.py: Reading, Processing, and Interpolating .mpl data (**In development**)
   - [x] Reading .MPL binary data files.
   - [x] Reading afterpulse, overlap, and deadtime correction .bin files.
-  - [x] Function for interpolating lidar data to even timesteps and deals with gaps in timestamps.
+  - [x] Function for interpolating lidar data to even timesteps and fill in NaN in any time timestamps.
   - [x] Data selection based on start-time and end-time.
   - [x] Calculate SNR, R2 corrected, NRB, and Depol Ratio
   - [x] Output .MPL binary data (useful when need to combine or make modification to the binary data files)
@@ -87,4 +87,4 @@ plt.show()
 
 | ![space-1.jpg](assets/example_interpolated_nrb_20220807.png) | 
 |:--:| 
-| *NRB data collected during DOE TRACER project by TAMU mobile lab. The gaps show when lidar was off and the gaps are handled by the interpolation function.* |
+| *NRB data collected during DOE TRACER project by TAMU mobile lab. The gaps show when lidar was off and the gaps in timestamps are handled by the interpolation function.* |
