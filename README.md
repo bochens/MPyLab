@@ -27,7 +27,7 @@ Note: the code is still in development and not well tested.
 - inversempl.py: Lidar inversion module (**In development, Experimental**)
   - [x] Inward 2-component Fernald method
   - [ ] Outward 2-component Fernald method
-  - [ ] Detect unstability during inversion
+  - [ ] Detect unstable/non-converging inversion
   - [ ] Use radiosonde data with Fernald method
     
 - plotmpl.py: Ploting mpl data
