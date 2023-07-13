@@ -25,7 +25,8 @@ Note: the code is still in development and not well tested.
   - [ ] PBL, cloud, and aerosol layer detection based on the zero crossing algorithm.
         
 - inversempl.py: Lidar inversion module (**In development, Experimental**)
-  - [x] Fernald method
+  - [x] Inward 2-component Fernald method
+  - [ ] Outward 2-component Fernald method
   - [ ] Detect unstability during inversion
   - [ ] Use radiosonde data with Fernald method
     
