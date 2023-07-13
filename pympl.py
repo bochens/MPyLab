@@ -62,10 +62,10 @@ class PyMPL:
                                   for x,y,z,h,m,s in zip(year_str,month_str,day_str,hours_str,minutes_str,seconds_str)], dtype='datetime64')
         self.seconds_since_start = (self.datetime-self.datetime[0]).astype('timedelta64[s]').astype(int) # Seconds since first data entry
 
-        self.laser_energy         = np.array(self.data_dict['energy_monitor'])/1000
-        self.temp_detector  = np.array(self.data_dict['temp_0'])/100
-        self.temp_telescope = np.array(self.data_dict['temp_2'])/100
-        self.temp_laser     = np.array(self.data_dict['temp_3'])/100
+        self.laser_energy   = np.array(self.data_dict['energy_monitor'])/1000   # micro Joules (uJ)
+        self.temp_detector  = np.array(self.data_dict['temp_0'])/100            # degree C
+        self.temp_telescope = np.array(self.data_dict['temp_2'])/100            # degree C
+        self.temp_laser     = np.array(self.data_dict['temp_3'])/100            # degree C
 
         self.number_profile = self.datetime.size
 
@@ -77,37 +77,37 @@ class PyMPL:
         if np.all(np.array(self.data_dict['bin_time']) != self.bin_time):
             raise ValueError('bin_time of scans have to be the same')
         
-        background_copol    = np.array(self.data_dict['background_average_2'])
-        background_crosspol = np.array(self.data_dict['background_average'])
+        background_copol    = np.array(self.data_dict['background_average_2'])  # count per micro seconds (count us-1)
+        background_crosspol = np.array(self.data_dict['background_average'])    # count per micro seconds (count us-1)
 
         no_blind_range      = 0.5*self.bin_time*self._C*(np.arange(self.number_bins) + 0.5)*1e-3 #km
         above_blind_range   = no_blind_range > self.blind_range
 
         self.range          = no_blind_range[above_blind_range] # do not include range below blind range
         self.bin_resolition = self.range[1]-self.range[0]
-        self.range_edges    = np.append(self.range-self.bin_resolition, self.range[-1]+self.bin_resolition)
+        self.range_edges    = np.append(self.range-self.bin_resolition/2, self.range[-1]+self.bin_resolition/2)
 
-        self.raw_copol      = np.array(self.data_dict['channel_2_data'])[:,above_blind_range]
-        self.raw_crosspol   = np.array(self.data_dict['channel_1_data'])[:,above_blind_range]
+        self.raw_copol      = np.array(self.data_dict['channel_2_data'])[:,above_blind_range] # count per micro seconds (count us-1)
+        self.raw_crosspol   = np.array(self.data_dict['channel_1_data'])[:,above_blind_range] # count per micro seconds (count us-1)
 
-        self.snr_copol      = self.calculate_snr(self.raw_copol, background_copol, np.array(self.data_dict['background_std_dev_2']))
-        self.snr_crosspol   = self.calculate_snr(self.raw_crosspol, background_crosspol, np.array(self.data_dict['background_std_dev']))
+        self.snr_copol      = self.calculate_snr(self.raw_copol, background_copol, np.array(self.data_dict['background_std_dev_2']))     # unitless
+        self.snr_crosspol   = self.calculate_snr(self.raw_crosspol, background_crosspol, np.array(self.data_dict['background_std_dev'])) # unitless
         ## Calculated product ##
         # Calculate Range Correction Product
-        self.r2_corrected_copol    = self.calculate_r2_corrected(self.raw_copol, background_copol)
-        self.r2_corrected_crosspol = self.calculate_r2_corrected(self.raw_crosspol, background_crosspol)
+        self.r2_corrected_copol    = self.calculate_r2_corrected(self.raw_copol, background_copol)        # counts km2 per micro seconds (counts km2 us-1)
+        self.r2_corrected_crosspol = self.calculate_r2_corrected(self.raw_crosspol, background_crosspol)  # counts km2 per micro seconds (counts km2 us-1)
 
         # Calculate Normalized Relative Backscatter
         self.nrb_copol    = self.calculate_nrb(self.raw_copol   ,background_copol    \
-                                               ,self.ap_dict['ap_copol'],self.ap_dict['ap_background_average_copol'])
+                                               ,self.ap_dict['ap_copol'],self.ap_dict['ap_background_average_copol'])       # counts km2 per micro seconds per micro Joules (counts km2 us-1 uJ-1)
         self.nrb_crosspol = self.calculate_nrb(self.raw_crosspol,background_crosspol \
-                                               ,self.ap_dict['ap_crosspol'],self.ap_dict['ap_background_average_crosspol'])
-        self.depol_ratio  = self.calculate_depol_ratio()
+                                               ,self.ap_dict['ap_crosspol'],self.ap_dict['ap_background_average_crosspol']) # counts km2 per micro seconds per micro Joules (counts km2 us-1 uJ-1)
+        self.depol_ratio  = self.calculate_depol_ratio()    # unitless
         
         ## Interpolation product ##
         self.interpolation_flag                   = False   # True if the data has been interpolated
         self.interpolated_datetime                = None    # Use this as datetime for plotting interpolated data
-        self.interpolated_laser_energy            = None    # Energy Monitor
+        self.interpolated_laser_energy            = None    
         self.interpolated_temp_telescope          = None
         self.interpolated_temp_detector           = None
         self.interpolated_temp_laser              = None
