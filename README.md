@@ -23,7 +23,11 @@ Note: the code is still in development and not well tested.
   - [x] Output .MPL binary data (useful when need to combine or make modification to the binary data files)
   - [ ] Output NetCDF data files 
   - [ ] PBL, cloud, and aerosol layer detection based on the zero crossing algorithm.
-  - [ ] Fernald method for backscatter coefficient and extinction coefficient retrieval
+        
+- inversempl.py: Lidar inversion module (**In development, Experimental**)
+  - [x] Fernald method
+  - [ ] Detect unstability during inversion
+  - [ ] Use radiosonde data with Fernald method
     
 - plotmpl.py: Ploting mpl data
   - [x] Function for 2d timeseries plot
