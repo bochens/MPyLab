@@ -72,12 +72,12 @@ mpl_object.interpolate_data(60, start_time = np.datetime64('YYYY-MM-DDThh:mm:ss'
 
 # Plot the non-interpolated copol nrb data using default colormap
 fig0, ax0 = plt.subplots(nrows=1, ncols=1, figsize=(10,4))
-plotmpl.plot_mpl_2d_timeseries(mpl_object.datetime, mpl_object.range_edges, mpl_object.nrb_copol, fig=fig0, ax=ax0, range_max = 5, vmin=0, vmax=1)
+plotmpl.plot_mpl_2d_timeseries(mpl_object.datetime, mpl_object.range, mpl_object.nrb_copol, fig=fig0, ax=ax0, range_max = 5, vmin=0, vmax=1)
 ax0.set_title('copol nrb')
 
 # Plot the interpolated copol nrb data using modified gist_ncar colormap
 fig1, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(10,4))
-plotmpl.plot_mpl_2d_timeseries(mpl_object.interpolated_datetime, mpl_object.range_edges, mpl_object.interpolated_nrb_copol, fig=fig1, ax=ax1, range_max = 5, vmin=0, vmax=1, color_map = plotmpl.lidar_gist)
+plotmpl.plot_mpl_2d_timeseries(mpl_object.interpolated_datetime, mpl_object.range, mpl_object.interpolated_nrb_copol, fig=fig1, ax=ax1, range_max = 5, vmin=0, vmax=1, color_map = plotmpl.lidar_gist)
 ax1.set_title('interpolated copol nrb')
 
 plt.show()
