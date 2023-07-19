@@ -52,7 +52,7 @@ Note: the code is still in development and not fully tested.
 
 ## Example Usage
 
-Here's an example usage of the `plot_mpl_2d_timeseries` function:
+Here's an example usage of this toolkit for reading and plotting NRB data:
 
 ```python
 from pympl import PyMPL
