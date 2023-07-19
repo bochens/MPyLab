@@ -25,10 +25,12 @@ Note: the code is still in development and not well tested.
   - [ ] PBL, cloud, and aerosol layer detection based on the zero crossing algorithm.
         
 - inversempl.py: Lidar inversion module (**In development, Experimental**)
+  - [x] Slope method
   - [x] Inward 2-component Fernald method
+  - [x] Inward 1-component Klett method
+  - [x] Attenuated backscatter smoothing using wavelet transform and NeighBlock method.
   - [ ] Outward 2-component Fernald method
   - [ ] Detect unstable/non-converging inversion
-  - [ ] Use radiosonde data with Fernald method
     
 - plotmpl.py: Ploting mpl data
   - [x] Function for 2d timeseries plot
