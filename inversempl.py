@@ -65,14 +65,15 @@ def Fernald_inversion_inwards(nrb, mpl_range, beta2, S1, S2 = molecular_lidar_ra
     calibration_beta2 = selected_beta2[-1]
     calibration_backscatter = calibration_beta1+calibration_beta2
 
-    if (nrb.ndim == beta2.ndim):
+    if (nrb.ndim - calibration_backscatter.ndim == 1):
         beta2_output = selected_beta2
         total_backscatter[-1] = calibration_backscatter # calibration data
-    elif nrb.ndim - beta2.ndim == 1:
+    elif nrb.ndim - calibration_backscatter.ndim == 2:
         beta2_output = np.array([selected_beta2]*nrb.shape[1])
         total_backscatter[-1] = np.array([calibration_backscatter]*nrb.shape[1])
     else:
-        raise ValueError('nrb and beta2 dimension do not match')
+        raise ValueError('nrb can have 1 or 2 more dimensions than the boundary condition.\
+                         beta2 can be a 2D array or an 1D array. calibration_beta1 can be a 1D array or a number')
     
     for i in reversed(range(selected_range.size)):
         if i>0:
@@ -228,4 +229,15 @@ def movingaverage(values, window):
     else:
         raise ValueError('values has to be an 1D array or a 2D array')
 
-    
+def slope_inversion(nrb, mpl_range, slope_start, slope_end, lidar_ratio = 30):
+    lbNRB = np.log(nrb)
+    lbNRB = np.nan_to_num(lbNRB, nan=0.0)
+    selected_lnNRB = lbNRB[np.logical_and(mpl_range >= slope_start, mpl_range < slope_end)]
+    selected_range = mpl_range[np.logical_and(mpl_range >= slope_start, mpl_range < slope_end)]
+
+    slope, intercept, r, p_value, std_err = scipy.stats.linregress(selected_range, selected_lnNRB)
+    slope_ext_coeff = -0.5 * slope
+    slope_bcksca_coeff = slope_ext_coeff/lidar_ratio
+
+    return slope_ext_coeff, slope_bcksca_coeff, slope, intercept, r, p_value, std_err
+
