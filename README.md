@@ -22,7 +22,6 @@ Note: the code is still in development and not fully tested.
   - [x] Calculate SNR, R2 corrected, NRB, and Depol Ratio
   - [x] Output .MPL binary data (useful when need to combine or make modification to the binary data files)
   - [ ] Output NetCDF data files 
-  - [ ] PBL, cloud, and aerosol layer detection based on the zero crossing algorithm.
         
 - inversempl.py: Lidar inversion module (**In development, Experimental**)
   - [x] Slope method
@@ -37,8 +36,6 @@ Note: the code is still in development and not fully tested.
   - [ ] Function for 1d timeseries plot
   - [ ] Function for single and average profile plot
 
-- mpl_aerosol.py: Aerosol profile retrieval based on MPL data (**Planned**)
-- T-matrix calculaiton dataset for lidar aerosol retrieval (**Planned**)
 
 ## Documentation
 
