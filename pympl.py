@@ -73,17 +73,19 @@ class PyMPL:
         if np.all(np.array(self.data_dict['number_bins']) != self.number_bins):
             raise ValueError('number_bins of scans have to be the same')
         
-        self.bin_time = self.data_dict['bin_time'][0]
+        self.bin_time = self.data_dict['bin_time'][0] # bin width in seconds
         if np.all(np.array(self.data_dict['bin_time']) != self.bin_time):
             raise ValueError('bin_time of scans have to be the same')
         
         background_copol    = np.array(self.data_dict['background_average_2'])  # count per micro seconds (count us-1)
         background_crosspol = np.array(self.data_dict['background_average'])    # count per micro seconds (count us-1)
 
-        no_blind_range      = 0.5*self.bin_time*self._C*(np.arange(self.number_bins) + 0.5)*1e-3 #km
-        above_blind_range   = no_blind_range > self.blind_range
+        #self.no_blind_range      = 0.5*self.bin_time*self._C*(np.arange(self.number_bins) + 1)*1e-3 #km
+        # # a previous version uses +0.5 following Peter Kuma. However, using +1 generates the same r2corrected result as the sigmaMPL software
+        self.no_blind_range      = 0.5*self.bin_time*self._C*(np.arange(self.number_bins) + 0.5)*1e-3 #km
+        above_blind_range   = self.no_blind_range > self.blind_range
 
-        self.range          = no_blind_range[above_blind_range] # do not include range below blind range
+        self.range          = self.no_blind_range[above_blind_range] # do not include range below blind range
         self.bin_resolition = self.range[1]-self.range[0]
         self.range_edges    = np.append(self.range-self.bin_resolition/2, self.range[-1]+self.bin_resolition/2)
 
@@ -98,12 +100,12 @@ class PyMPL:
         self.r2_corrected_crosspol = self.calculate_r2_corrected(self.raw_crosspol, background_crosspol)  # counts km2 per micro seconds (counts km2 us-1)
 
         # Calculate Normalized Relative Backscatter
-        self.nrb_copol    = self.calculate_nrb(self.raw_copol   ,background_copol    \
+        self.nrb_copol    = self.calculate_nrb(self.raw_copol,    background_copol    \
                                                ,self.ap_dict['ap_copol'],self.ap_dict['ap_background_average_copol'])       # counts km2 per micro seconds per micro Joules (counts km2 us-1 uJ-1)
-        self.nrb_crosspol = self.calculate_nrb(self.raw_crosspol,background_crosspol \
+        self.nrb_crosspol = self.calculate_nrb(self.raw_crosspol, background_crosspol \
                                                ,self.ap_dict['ap_crosspol'],self.ap_dict['ap_background_average_crosspol']) # counts km2 per micro seconds per micro Joules (counts km2 us-1 uJ-1)
         self.depol_ratio  = self.calculate_depol_ratio()    # unitless
-        
+
         ## Interpolation product ##
         self.interpolation_flag                   = False   # True if the data has been interpolated
         self.interpolated_datetime                = None    # Use this as datetime for plotting interpolated data
@@ -121,8 +123,8 @@ class PyMPL:
         self.interpolated_depol_ratio             = None
         self.interpolated_snr_copol               = None
         self.interpolated_snr_crosspol            = None
-    
-    def copy(self):
+
+    def deepcopy(self):
         return copy.deepcopy(self)
         
     @classmethod
@@ -255,11 +257,14 @@ class PyMPL:
         dt_coeff_degree = self.dt_dict['dt_coeff_degree']
         dt_number_coeff = self.dt_dict['dt_number_coeff']
         return np.sum([(data*1e3)**(dt_coeff_degree[i])*dt_coeff[i] for i in range(dt_number_coeff)], axis=0)
+        # # Don't apply the 1000 factor
+        #return np.sum([(data)**(dt_coeff_degree[i])*dt_coeff[i] for i in range(dt_number_coeff)], axis=0)
 
     def calculate_r2_corrected(self, raw_data, background):
+        # the result is exactly the same as the software result
         background_stacked = np.transpose(np.vstack([background]*raw_data.shape[1]))
         return (raw_data - background_stacked)*np.square(self.range)
-    
+
     def calculate_nrb(self, raw_data, background, ap_data, ap_background):
         ap_range = self.ap_dict['ap_range']
         ol_range = self.ov_dict['ol_range']
@@ -271,13 +276,21 @@ class PyMPL:
         ov_data_stacked  = np.vstack([ov_data_interped] * raw_data.shape[0])
         energy_stacked   = np.transpose(np.vstack([self.laser_energy] * raw_data.shape[1]))
         range_stacked    = np.vstack([self.range] * raw_data.shape[0])
-        dt_corrected_raw = raw_data*self.calculate_dtcf(raw_data)
+
+        dt_corrected_raw = raw_data * self.calculate_dtcf(raw_data)
         background_correction = np.transpose(np.vstack([background * self.calculate_dtcf(background)] * raw_data.shape[1]))
         afterpulse_correction = (
             ap_data_stacked * self.calculate_dtcf(ap_data_stacked) - ap_background  * self.calculate_dtcf(ap_background)
         ) * energy_stacked  / self.ap_dict['ap_energy']
 
-        nrb = (dt_corrected_raw - background_correction - afterpulse_correction)*np.square(range_stacked) / (ov_data_stacked*energy_stacked)
+        # # Not applying 
+        # dt_corrected_raw = raw_data
+        # background_correction = np.transpose(np.vstack([background] * raw_data.shape[1]))
+        # afterpulse_correction = (
+        #     ap_data_stacked - ap_background 
+        # ) * energy_stacked  / self.ap_dict['ap_energy']
+
+        nrb = (dt_corrected_raw - background_correction - afterpulse_correction) * np.square(range_stacked) / (ov_data_stacked*energy_stacked)
         return nrb
 
     def calculate_depol_ratio(self):
@@ -285,8 +298,8 @@ class PyMPL:
         return cross_over_co/(cross_over_co+1)
 
     def select_time(self, start_time, end_time): # return a new PyMPL object with data within the start_time and end_time
-        start_time = np.datetime64(start_time)
-        end_time   = np.datetime64(end_time)
+        start_time = np.datetime64(start_time)  # include start
+        end_time   = np.datetime64(end_time)    # include end
         selected_indicies = np.where(np.logical_and(self.datetime>=start_time, self.datetime<=end_time))[0]
 
         selected_data_dict = {}
@@ -311,8 +324,9 @@ class PyMPL:
 
         new_seconds_passed = (new_time_array-new_time_array[0]).astype('timedelta64[s]').astype(int)
         original_seconds_passed  = (self.datetime-new_time_array[0]).astype('timedelta64[s]').astype(int)
-        
-        time_difference    = self.seconds_since_start[1:] - self.seconds_since_start[:-1]
+
+        # this works because it finds the actural datetime of the gap so it does not matter where it started
+        time_difference    = self.seconds_since_start[1:] - self.seconds_since_start[:-1] 
         gap_indicies       = np.where(time_difference>gap_seconds)[0]
         gap_starts_arr     = self.datetime[gap_indicies]
         gap_ends_arr       = self.datetime[gap_indicies+1]
@@ -369,7 +383,7 @@ class PyMPL:
         self.interpolated_depol_ratio            = self.interpolate_single_data(new_time_array, self.depol_ratio, time_reoslution, gap_seconds=gap_seconds)
         self.interpolated_snr_copol              = self.interpolate_single_data(new_time_array, self.snr_copol, time_reoslution, gap_seconds=gap_seconds)
         self.interpolated_snr_crosspol           = self.interpolate_single_data(new_time_array, self.snr_crosspol, time_reoslution, gap_seconds=gap_seconds)
-    
+
     def interpolation_reset(self):
         self.interpolation_flag                  = False
         self.interpolated_datetime               = None
@@ -413,3 +427,29 @@ class PyMPL:
                     binary_data = struct.pack(self._byte_format[entry_format], *data_to_write)
                     
                 new_file.write(binary_data)
+
+    @classmethod
+    def _movingaverage(cls, values, window):
+        # helper function moving average with 1d array
+        if window%2 == 0:
+            raise ValueError('Use odd moving average window')
+        weights = np.repeat(1.0, window)/window
+        sma = np.convolve(values, weights, mode='same')
+        return sma
+
+    @classmethod
+    def movingaverage(cls, values, window):
+        # values could either be an 1d array or a 2d array.
+        values = np.array(values)
+        if values.ndim == 1:
+            return cls._movingaverage(values, window)
+        elif values.ndim == 2:
+            result = []
+            for i in range(values.shape[0]):
+                result.append(cls._movingaverage(values[i], window))
+            result = np.array(result)
+            return result
+        else:
+            raise ValueError('values has to be an 1D array or a 2D array')
+        
+
