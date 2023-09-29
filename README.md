@@ -22,7 +22,8 @@ Note: the code is still in development and not fully tested.
   - [x] Calculate SNR, R2 corrected, NRB, and Depol Ratio
   - [x] Output .MPL binary data (useful when need to combine or make modification to the binary data files)
   - [ ] Output NetCDF data files 
-        
+
+<!--
 - inversempl.py: Lidar inversion module (**In development, Experimental**)
   - [x] Slope method
   - [x] Inward 2-component Fernald method
@@ -30,6 +31,7 @@ Note: the code is still in development and not fully tested.
   - [x] Attenuated backscatter smoothing using wavelet transform and NeighBlock method.
   - [ ] Outward 2-component Fernald method
   - [ ] Detect unstable/non-converging inversion
+-->
     
 - plotmpl.py: Ploting mpl data
   - [x] Function for 2d timeseries plot
