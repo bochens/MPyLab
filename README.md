@@ -21,7 +21,6 @@ Note: the code is still in development and not fully tested.
   - [x] Data selection based on start-time and end-time.
   - [x] Calculate SNR, R2 corrected, NRB, and Depol Ratio
   - [x] Output .MPL binary data (useful when need to combine or make modification to the binary data files)
-  - [ ] Output NetCDF data files 
 
 <!--
 - inversempl.py: Lidar inversion module (**In development, Experimental**)
