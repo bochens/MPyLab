@@ -5,6 +5,7 @@ import struct
 import scipy
 import copy
 from netCDF4 import Dataset
+from datetime import datetime
 
 class PyMPL:
     _C = 299792458 # m.s-1 speed of light
@@ -41,6 +42,7 @@ class PyMPL:
     _ap_header = ['ap_header','ap_file_version','ap_number_channels','ap_number_bins','ap_energy','ap_background_average_copol','ap_background_average_crosspol']
     _ap_header_format = ['uint32','uint16','uint8','uint32','float64','float64','float64']
 
+
     def __init__(self, data_input, ap_input, ov_input, dt_input, blind_range = 0.1):
         
         # make sure the instance constructor can take both dictionary and file path as input
@@ -69,60 +71,54 @@ class PyMPL:
 
         self.number_profile = self.datetime.size
 
+        first_data_bin_number  = self.data_dict['first_data_bin'][0]
+
         self.number_bins = self.data_dict['number_bins'][0]
         if np.all(np.array(self.data_dict['number_bins']) != self.number_bins):
             raise ValueError('number_bins of scans have to be the same')
+
+        self.number_data_bins = self.data_dict['number_data_bins'][0]
+        if np.all(np.array(self.data_dict['number_bins']) != self.number_bins):
+            raise ValueError('number_data_bins of scans have to be the same')
         
         self.bin_time = self.data_dict['bin_time'][0] # bin width in seconds
         if np.all(np.array(self.data_dict['bin_time']) != self.bin_time):
             raise ValueError('bin_time of scans have to be the same')
         
-        background_copol    = np.array(self.data_dict['background_average_2'])  # count per micro seconds (count us-1)
-        background_crosspol = np.array(self.data_dict['background_average'])    # count per micro seconds (count us-1)
-
+        self.background_copol    = np.array(self.data_dict['background_average_2'])  # count per micro seconds (count us-1)
+        self.background_crosspol = np.array(self.data_dict['background_average'])    # count per micro seconds (count us-1)
+        
         #self.no_blind_range      = 0.5*self.bin_time*self._C*(np.arange(self.number_bins) + 1)*1e-3 #km
-        # # a previous version uses +0.5 following Peter Kuma. However, using +1 generates the same r2corrected result as the sigmaMPL software
-        self.no_blind_range      = 0.5*self.bin_time*self._C*(np.arange(self.number_bins) + 0.5)*1e-3 #km
+        # a previous version uses +0.5 following Peter Kuma. However, using +1 generates the same r2corrected result as the sigmaMPL software
+        self.no_blind_range = 0.5*self.bin_time*self._C*(np.arange(self.number_data_bins) + 0.5)*1e-3 #km
         above_blind_range   = self.no_blind_range > self.blind_range
 
         self.range          = self.no_blind_range[above_blind_range] # do not include range below blind range
         self.bin_resolition = self.range[1]-self.range[0]
         self.range_edges    = np.append(self.range-self.bin_resolition/2, self.range[-1]+self.bin_resolition/2)
 
-        self.raw_copol      = np.array(self.data_dict['channel_2_data'])[:,above_blind_range] # count per micro seconds (count us-1)
-        self.raw_crosspol   = np.array(self.data_dict['channel_1_data'])[:,above_blind_range] # count per micro seconds (count us-1)
+        self.raw_copol      = np.array(self.data_dict['channel_2_data'])[:, first_data_bin_number:][:,above_blind_range] # count per micro seconds (count us-1)
+        self.raw_crosspol   = np.array(self.data_dict['channel_1_data'])[:, first_data_bin_number:][:,above_blind_range] # count per micro seconds (count us-1)
 
-        self.snr_copol      = self.calculate_snr(self.raw_copol, background_copol, np.array(self.data_dict['background_std_dev_2']))     # unitless
-        self.snr_crosspol   = self.calculate_snr(self.raw_crosspol, background_crosspol, np.array(self.data_dict['background_std_dev'])) # unitless
+        self.snr_copol      = self.calculate_snr(self.raw_copol, self.background_copol, np.array(self.data_dict['background_std_dev_2']))     # unitless
+        self.snr_crosspol   = self.calculate_snr(self.raw_crosspol, self.background_crosspol, np.array(self.data_dict['background_std_dev'])) # unitless
         ## Calculated product ##
         # Calculate Range Correction Product
-        self.r2_corrected_copol    = self.calculate_r2_corrected(self.raw_copol, background_copol)        # counts km2 per micro seconds (counts km2 us-1)
-        self.r2_corrected_crosspol = self.calculate_r2_corrected(self.raw_crosspol, background_crosspol)  # counts km2 per micro seconds (counts km2 us-1)
+        self.r2_corrected_copol    = self.calculate_r2_corrected(self.raw_copol, self.background_copol)        # counts km2 per micro seconds (counts km2 us-1)
+        self.r2_corrected_crosspol = self.calculate_r2_corrected(self.raw_crosspol, self.background_crosspol)  # counts km2 per micro seconds (counts km2 us-1)
 
         # Calculate Normalized Relative Backscatter
-        self.nrb_copol    = self.calculate_nrb(self.raw_copol,    background_copol    \
+        self.nrb_copol    = self.calculate_nrb(self.raw_copol,    self.background_copol    \
                                                ,self.ap_dict['ap_copol'],self.ap_dict['ap_background_average_copol'])       # counts km2 per micro seconds per micro Joules (counts km2 us-1 uJ-1)
-        self.nrb_crosspol = self.calculate_nrb(self.raw_crosspol, background_crosspol \
+        self.nrb_crosspol = self.calculate_nrb(self.raw_crosspol, self.background_crosspol \
                                                ,self.ap_dict['ap_crosspol'],self.ap_dict['ap_background_average_crosspol']) # counts km2 per micro seconds per micro Joules (counts km2 us-1 uJ-1)
+        self.nrb_unpol    = self.calculate_nrb((self.raw_copol+2*self.raw_crosspol), self.background_crosspol \
+                                               ,self.ap_dict['ap_crosspol'],self.ap_dict['ap_background_average_crosspol']) # counts km2 per micro seconds per micro Joules (counts km2 us-1 uJ-1)
+
         self.depol_ratio  = self.calculate_depol_ratio()    # unitless
 
         ## Interpolation product ##
-        self.interpolation_flag                   = False   # True if the data has been interpolated
-        self.interpolated_datetime                = None    # Use this as datetime for plotting interpolated data
-        self.interpolated_laser_energy            = None    
-        self.interpolated_temp_telescope          = None
-        self.interpolated_temp_detector           = None
-        self.interpolated_temp_laser              = None
-        self.interpolated_seconds_since_start     = None
-        self.interpolated_raw_copol               = None
-        self.interpolated_raw_crosspol            = None
-        self.interpolated_r2_corrected_copol      = None
-        self.interpolated_r2_corrected_crosspol   = None
-        self.interpolated_nrb_copol               = None
-        self.interpolated_nrb_crosspol            = None
-        self.interpolated_depol_ratio             = None
-        self.interpolated_snr_copol               = None
-        self.interpolated_snr_crosspol            = None
+        self.interpolation_reset()
 
     def deepcopy(self):
         return copy.deepcopy(self)
@@ -172,7 +168,8 @@ class PyMPL:
                     elif entry_format == 'char*6':
                         data_dict[entry_type].append(binary_entry.decode('latin-1'))
                     elif entry_format == 'float32 array':
-                        unpacked_entry = struct.unpack(cls._byte_format[entry_format], binary_entry)
+                        #unpacked_entry = struct.unpack(cls._byte_format[entry_format], binary_entry)
+                        unpacked_entry = struct.unpack('<'+str(number_bins)+'f', binary_entry)
                         data_dict[entry_type].append(list(unpacked_entry))
         fin.close()
         return data_dict, number_bins
@@ -238,32 +235,43 @@ class PyMPL:
     
     @classmethod
     def read_deadtime(cls, file_path):
-        fin = open(file_path, "rb")
-        buf = fin.read()
-        n = len(buf)//4
-        dt_dict = {'dt_number_coeff': n}
-        dt_dict['dt_coeff'] = np.array(struct.unpack_from('<' + 'f'*n, buf))
-        dt_dict['dt_coeff_degree'] = np.arange(n - 1, -1, -1)
+
+        file_extension = os.path.splitext(file_path)[-1]
+
+        if file_extension == '.bin':
+            fin = open(file_path, "rb")
+            buf = fin.read()
+            n = len(buf)//4
+            dt_dict = {'dt_number_coeff': n}
+            dt_dict['dt_coeff'] = np.array(struct.unpack_from('<' + 'f'*n, buf), np.float32)
+            dt_dict['dt_coeff_degree'] = np.arange(n - 1, -1, -1)
+        elif file_extension == '.csv':
+            coefficient_data = np.loadtxt(file_path, delimiter=",")
+            n = len(coefficient_data)
+            dt_dict = {'dt_number_coeff': n}
+            dt_dict['dt_coeff'] = coefficient_data
+            dt_dict['dt_coeff_degree'] = np.arange(n - 1, -1, -1)
+        else:
+            raise IOError('deadtime correction file in .bin or .csv format')
         return dt_dict
-    
+
     def calculate_snr(self, raw_data, background, background_std_dev):
         background_stacked = np.transpose(np.vstack([background] * raw_data.shape[1]))
         background_std_dev_stacked = np.transpose(np.vstack([background_std_dev] * raw_data.shape[1]))
 
         return (raw_data - background_stacked)/background_std_dev_stacked
-    
+
     def calculate_dtcf(self, data): # calculate deadtime correction factor
         dt_coeff = self.dt_dict['dt_coeff']
         dt_coeff_degree = self.dt_dict['dt_coeff_degree']
         dt_number_coeff = self.dt_dict['dt_number_coeff']
         return np.sum([(data*1e3)**(dt_coeff_degree[i])*dt_coeff[i] for i in range(dt_number_coeff)], axis=0)
-        # # Don't apply the 1000 factor
-        #return np.sum([(data)**(dt_coeff_degree[i])*dt_coeff[i] for i in range(dt_number_coeff)], axis=0)
 
     def calculate_r2_corrected(self, raw_data, background):
         # the result is exactly the same as the software result
         background_stacked = np.transpose(np.vstack([background]*raw_data.shape[1]))
         return (raw_data - background_stacked)*np.square(self.range)
+
 
     def calculate_nrb(self, raw_data, background, ap_data, ap_background):
         ap_range = self.ap_dict['ap_range']
@@ -282,13 +290,6 @@ class PyMPL:
         afterpulse_correction = (
             ap_data_stacked * self.calculate_dtcf(ap_data_stacked) - ap_background  * self.calculate_dtcf(ap_background)
         ) * energy_stacked  / self.ap_dict['ap_energy']
-
-        # # Not applying 
-        # dt_corrected_raw = raw_data
-        # background_correction = np.transpose(np.vstack([background] * raw_data.shape[1]))
-        # afterpulse_correction = (
-        #     ap_data_stacked - ap_background 
-        # ) * energy_stacked  / self.ap_dict['ap_energy']
 
         nrb = (dt_corrected_raw - background_correction - afterpulse_correction) * np.square(range_stacked) / (ov_data_stacked*energy_stacked)
         return nrb
@@ -313,14 +314,18 @@ class PyMPL:
         high_snr_data[snr_data<snr_limit] = np.nan
         return high_snr_data
     
-    def interpolate_single_data(self, new_time_array, data, time_reoslution, gap_seconds = None):
+    def interpolate_single_data(self, new_time_array, data, time_resolution=None, gap_seconds = None):
         '''
         time_resolution: time resolution in seconds
         gap_seconds: determine when the gap in timestamps is too large to be interpolated
         '''
+
+        if time_resolution is None:
+            time_resolution = np.nanmean(new_time_array[1:]-new_time_array[:-1])
+
         data = np.array(data) # make sure its an np array
         if gap_seconds is None:
-            gap_seconds = time_reoslution * 2
+            gap_seconds = time_resolution * 2
 
         new_seconds_passed = (new_time_array-new_time_array[0]).astype('timedelta64[s]').astype(int)
         original_seconds_passed  = (self.datetime-new_time_array[0]).astype('timedelta64[s]').astype(int)
@@ -343,15 +348,15 @@ class PyMPL:
         return interpolated_data
     
     @classmethod
-    def make_time_array(cls, time_reoslution, start_time, end_time):
+    def make_time_array(cls, time_resolution, start_time, end_time):
         start_time = np.datetime64(start_time)
-        end_time   = np.datetime64(end_time) + np.timedelta64(time_reoslution,'s') # so the end time is also included
+        end_time   = np.datetime64(end_time) + np.timedelta64(time_resolution,'s') # so the end time is also included
 
-        return np.arange(start_time, end_time, np.timedelta64(time_reoslution, 's'))
+        return np.arange(start_time, end_time, np.timedelta64(time_resolution, 's'))
     
-    def interpolate_data(self, time_reoslution, start_time = None, end_time = None, gap_seconds = None):
+    def interpolate_data(self, time_resolution, start_time = None, end_time = None, gap_seconds = None, mov_avg_win = None):
         '''
-        time_reoslution is seconds
+        time_reoslution in seconds
         '''
 
         if start_time is None:
@@ -361,46 +366,50 @@ class PyMPL:
             end_time = self.datetime[-1] 
 
         if gap_seconds is None:
-            gap_seconds = time_reoslution * 2
+            gap_seconds = time_resolution * 2
         
         # return a new PyMPL object with interpolated data within the start_time and end_time
         
-        new_time_array = self.make_time_array(time_reoslution, start_time, end_time)
+        # Generate a new time array
+        new_time_array = self.make_time_array(time_resolution, start_time, end_time)
+        seconds_since_start = (new_time_array - new_time_array[0]).astype('timedelta64[s]').astype(int)
 
-        self.interpolation_flag                  = True
-        self.interpolated_datetime               = new_time_array
-        self.interpolated_seconds_since_start    = (new_time_array-new_time_array[0]).astype('timedelta64[s]').astype(int)
-        self.interpolated_laser_energy           = self.interpolate_single_data(new_time_array, self.laser_energy, time_reoslution, gap_seconds=gap_seconds)
-        self.interpolated_temp_detector          = self.interpolate_single_data(new_time_array, self.temp_detector, time_reoslution, gap_seconds=gap_seconds)
-        self.interpolated_temp_telescope         = self.interpolate_single_data(new_time_array, self.temp_telescope, time_reoslution, gap_seconds=gap_seconds)
-        self.interpolated_temp_laser             = self.interpolate_single_data(new_time_array, self.temp_laser, time_reoslution, gap_seconds=gap_seconds)
-        self.interpolated_raw_copol              = self.interpolate_single_data(new_time_array, self.raw_copol, time_reoslution, gap_seconds=gap_seconds)
-        self.interpolated_raw_crosspol           = self.interpolate_single_data(new_time_array, self.raw_crosspol, time_reoslution, gap_seconds=gap_seconds)
-        self.interpolated_r2_corrected_copol     = self.interpolate_single_data(new_time_array, self.r2_corrected_copol, time_reoslution, gap_seconds=gap_seconds)
-        self.interpolated_r2_corrected_crosspol  = self.interpolate_single_data(new_time_array, self.r2_corrected_crosspol, time_reoslution, gap_seconds=gap_seconds)
-        self.interpolated_nrb_copol              = self.interpolate_single_data(new_time_array, self.nrb_copol, time_reoslution, gap_seconds=gap_seconds)
-        self.interpolated_nrb_crosspol           = self.interpolate_single_data(new_time_array, self.nrb_crosspol, time_reoslution, gap_seconds=gap_seconds)
-        self.interpolated_depol_ratio            = self.interpolate_single_data(new_time_array, self.depol_ratio, time_reoslution, gap_seconds=gap_seconds)
-        self.interpolated_snr_copol              = self.interpolate_single_data(new_time_array, self.snr_copol, time_reoslution, gap_seconds=gap_seconds)
-        self.interpolated_snr_crosspol           = self.interpolate_single_data(new_time_array, self.snr_crosspol, time_reoslution, gap_seconds=gap_seconds)
+        # List of attributes to interpolate
+        attributes = ['laser_energy', 'temp_detector', 'temp_telescope', 'temp_laser',
+                    'raw_copol', 'raw_crosspol', 'r2_corrected_copol', 'r2_corrected_crosspol',
+                    'nrb_copol', 'nrb_crosspol', 'nrb_unpol', 'depol_ratio', 'snr_copol', 'snr_crosspol']
+
+        # Enable interpolation flag
+        self.interpolation_flag = True
+        self.interpolated_datetime = new_time_array
+        self.interpolated_seconds_since_start = seconds_since_start
+
+        # Function to apply moving average and interpolation
+        def process_attribute(attr):
+            data = getattr(self, attr)
+            if mov_avg_win:
+                data = self.movingaverage(data, mov_avg_win, axis=1)
+            return self.interpolate_single_data(new_time_array, data, time_resolution=time_resolution, gap_seconds=gap_seconds)
+
+        # Apply interpolation to each attribute
+        for attr in attributes:
+            setattr(self, f'interpolated_{attr}', process_attribute(attr))
 
     def interpolation_reset(self):
-        self.interpolation_flag                  = False
-        self.interpolated_datetime               = None
-        self.interpolated_seconds_since_start    = None
-        self.interpolated_laser_energy           = None
-        self.interpolated_temp_detector          = None
-        self.interpolated_temp_telescope         = None
-        self.interpolated_temp_laser             = None
-        self.interpolated_raw_copol              = None
-        self.interpolated_raw_crosspol           = None
-        self.interpolated_r2_corrected_copol     = None
-        self.interpolated_r2_corrected_crosspol  = None
-        self.interpolated_nrb_copol              = None
-        self.interpolated_nrb_crosspol           = None
-        self.interpolated_depol_ratio            = None
-        self.interpolated_snr_copol              = None
-        self.interpolated_snr_crosspol           = None
+    # List of interpolated attributes to reset
+        attributes = [
+            'datetime', 'seconds_since_start', 'laser_energy', 'temp_detector', 
+            'temp_telescope', 'temp_laser', 'raw_copol', 'raw_crosspol', 
+            'r2_corrected_copol', 'r2_corrected_crosspol', 'nrb_copol', 
+            'nrb_crosspol', 'nrb_unpol', 'depol_ratio', 'snr_copol', 'snr_crosspol'
+        ]
+
+        # Reset the interpolation flag
+        self.interpolation_flag = False
+
+        # Reset all attributes to None
+        for attr in attributes:
+            setattr(self, f'interpolated_{attr}', None)
     
     def write_mpl(self, output_dir, filename):
         """
@@ -428,28 +437,97 @@ class PyMPL:
                     
                 new_file.write(binary_data)
 
+    def output_netcdf(self, output_dir, filename):
+        ncfile = Dataset(os.path.join(output_dir, filename+'.nc'),mode='w',format='NETCDF4')
+        pass
+
     @classmethod
     def _movingaverage(cls, values, window):
         # helper function moving average with 1d array
-        if window%2 == 0:
-            raise ValueError('Use odd moving average window')
-        weights = np.repeat(1.0, window)/window
-        sma = np.convolve(values, weights, mode='same')
-        return sma
+        window_half = window // 2
+        nan_paddings = np.full(window_half, np.nan)
+
+        front_paddings = np.full(window_half, np.nanmean(values[:window_half]))
+        end_paddings   = np.full(window_half, np.nanmean(values[-window_half:]))
+
+        # Create a 2D view of the padded array with a rolling window
+        rolling_view = np.lib.stride_tricks.sliding_window_view(values, window)
+        
+        # Calculate the mean along the rolling window axis while ignoring NaNs
+        smoothed_data = np.nanmean(rolling_view, axis=1)
+        smoothed_data = np.hstack([front_paddings, smoothed_data, end_paddings])
+        return smoothed_data
 
     @classmethod
-    def movingaverage(cls, values, window):
+    def movingaverage(cls, values, window, axis = 0):
         # values could either be an 1d array or a 2d array.
         values = np.array(values)
         if values.ndim == 1:
             return cls._movingaverage(values, window)
         elif values.ndim == 2:
             result = []
-            for i in range(values.shape[0]):
-                result.append(cls._movingaverage(values[i], window))
+            for i in range(values.shape[axis]):
+                if axis == 0:
+                    result.append(cls._movingaverage(values[i], window))
+                elif axis == 1:
+                    result.append(cls._movingaverage(values[:,i], window))
+                else:
+                    raise ValueError('axis has to be 0 or 1')
             result = np.array(result)
+            if axis == 1:
+                result = np.transpose(result)
             return result
         else:
             raise ValueError('values has to be an 1D array or a 2D array')
         
 
+    @staticmethod
+    def get_file_list_by_date_range(mpl_file_folder, date_range, suffix='*.mpl'):
+        filelist = glob.glob(os.path.join(mpl_file_folder, suffix))
+        filelist.sort(key=os.path.getmtime)
+        substring_list = [date.item().strftime("%Y%m%d") for date in date_range]
+        selected_file_list = [s for s in filelist if any(substring in s for substring in substring_list)]
+
+        return selected_file_list
+    
+    @staticmethod
+    def get_file_list_by_start_end_datetime(mpl_file_folder, start_datetime, end_datetime, suffix='*.mpl'):
+        '''
+            for tamu mpl files
+        '''
+        filelist = glob.glob(os.path.join(mpl_file_folder, suffix))
+        filelist.sort(key=os.path.getmtime)
+
+        start_str = (start_datetime.astype(datetime)).strftime("%Y%m%d%H%M")
+        end_str = (end_datetime.astype(datetime)).strftime("%Y%m%d%H%M")
+
+        # Initialize indices for the files immediately before and after the date range
+        index_before_start = -1
+        index_after_end = len(filelist)
+
+        # Iterate through the file list to find the relevant indices
+        for i, file in enumerate(filelist):
+            file_base = os.path.basename(file)[:-4]
+            if file_base < start_str and (index_before_start == -1 or file_base > os.path.basename(filelist[index_before_start])[:-4]):
+                index_before_start = i
+            if file_base > end_str and (index_after_end == len(filelist) or file_base < os.path.basename(filelist[index_after_end])[:-4]):
+                index_after_end = i
+                break  # No need to continue once the file after end is found
+
+        # Filter files based on datetime range
+        selected_file_list = [s for s in filelist if os.path.basename(s)[:-4] >= start_str and os.path.basename(s)[:-4] <= end_str]
+
+        # Add the file immediately before the start time if it exists
+        if index_before_start != -1:
+            selected_file_list.insert(0, filelist[index_before_start])
+
+        # Add the file immediately after the end time if it exists
+        if index_after_end < len(filelist):
+            selected_file_list.append(filelist[index_after_end])
+
+        return selected_file_list
+    
+    @staticmethod
+    def get_date_range(start_datetime, end_datetime):
+        return np.arange(start_datetime, end_datetime + np.timedelta64(1, 'D') , np.timedelta64(1, 'D'), dtype='datetime64[D]')
+    
