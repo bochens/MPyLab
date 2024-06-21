@@ -112,8 +112,7 @@ class PyMPL:
                                                ,self.ap_dict['ap_copol'],self.ap_dict['ap_background_average_copol'])       # counts km2 per micro seconds per micro Joules (counts km2 us-1 uJ-1)
         self.nrb_crosspol = self.calculate_nrb(self.raw_crosspol, self.background_crosspol \
                                                ,self.ap_dict['ap_crosspol'],self.ap_dict['ap_background_average_crosspol']) # counts km2 per micro seconds per micro Joules (counts km2 us-1 uJ-1)
-        self.nrb_unpol    = self.calculate_nrb((self.raw_copol+2*self.raw_crosspol), self.background_crosspol \
-                                               ,self.ap_dict['ap_crosspol'],self.ap_dict['ap_background_average_crosspol']) # counts km2 per micro seconds per micro Joules (counts km2 us-1 uJ-1)
+        self.nrb_unpol    = self.nrb_copol + 2 * self.nrb_crosspol
 
         self.depol_ratio  = self.calculate_depol_ratio()    # unitless
 
